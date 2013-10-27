@@ -1,2 +1,5 @@
-akka-irc-bot
-============
+akka-ircbot
+===========
+
+TODO
+
