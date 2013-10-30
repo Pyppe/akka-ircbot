@@ -8,8 +8,8 @@ object IrcBotBuild extends Build {
   lazy val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := "fi.pyppe.ircbot",
     version      := "0.1-SNAPSHOT",
-    scalaVersion := "2.10.2",
-    offline := true
+    scalaVersion := "2.10.2"
+    //offline := true
   )
 
   lazy val root = Project(
@@ -50,17 +50,19 @@ object Dependencies {
   private val scalaLangExclusions = ExclusionRule(organization = "org.scala-lang")
 
   val commonLibs = Seq(
+    "com.typesafe.akka"  %% "akka-actor"           % "2.2.1",
     "com.typesafe.akka"  %% "akka-remote"          % "2.2.1",
     "com.typesafe.akka"  %% "akka-slf4j"           % "2.2.1",
-    "com.typesafe"       %  "config"               % "1.0.2",
+
     "com.typesafe"       %% "scalalogging-slf4j"   % "1.0.1" excludeAll(scalaLangExclusions),
+    "com.typesafe"       %  "config"               % "1.0.2",
     "org.joda"           %  "joda-convert"         % "1.5",
     "joda-time"          %  "joda-time"            % "2.3",
     "ch.qos.logback"     %  "logback-classic"      % "1.0.13"
   )
 
   val masterLibs = Seq(
-    "org.pircbotx"       %  "pircbotx"             % "2.1-SNAPSHOT"
+    "org.pircbotx"       %  "pircbotx"             % "2.0"
   )
 
 
