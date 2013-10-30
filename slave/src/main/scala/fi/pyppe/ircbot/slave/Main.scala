@@ -25,7 +25,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 
   def receive = {
     case m: Message =>
-      master ! Say(m.channel, s"Yo, I got ${m.text}")
+      master ! SayToChannel(m.channel, s"Yo, I got ${m.text}")
   }
 
 }

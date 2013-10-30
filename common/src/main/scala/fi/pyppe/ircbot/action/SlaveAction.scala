@@ -4,4 +4,4 @@ import org.joda.time.DateTime
 
 sealed trait SlaveRequest
 
-case class Say(channel: String, message: String)
+case class SayToChannel(channel: String, message: String)

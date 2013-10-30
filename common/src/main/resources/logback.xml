@@ -1,0 +1,30 @@
+<configuration>
+    <property name="logDirectory" value="logs" />
+    <property resource="logback.properties" />
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="VARLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <append>false</append>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+        <file>${logDirectory}/ircbot-${processName}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>${logDirectory}/ircbot-${processName}-%d.log.gz</fileNamePattern>
+        </rollingPolicy>
+    </appender>
+
+    <logger name="fi.pyppe.ircbot" level="DEBUG" />
+    <root level="INFO">
+        <appender-ref ref="VARLOG" />
+    </root>
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>

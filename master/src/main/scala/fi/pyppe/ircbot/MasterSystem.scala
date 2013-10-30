@@ -77,9 +77,9 @@ class MasterBroker(slaveLocation: String, bot: PircBotX) extends Actor with Logg
   protected val slave = context.actorSelection(slaveLocation)
 
   override def receive = {
-    case say: Say =>
+    case say: SayToChannel =>
       logger.debug(s"Got $say from $sender")
-      bot.getUserChannelDao().getChannel(say.channel).send().message(say.message)
+      bot.getUserChannelDao.getChannel(say.channel).send.message(say.message)
   }
 
 }
