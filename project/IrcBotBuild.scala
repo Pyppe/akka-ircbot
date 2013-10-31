@@ -1,5 +1,6 @@
 import sbt._
 import Keys._
+import com.github.retronym.SbtOneJar
 
 object IrcBotBuild extends Build {
 
@@ -8,7 +9,8 @@ object IrcBotBuild extends Build {
   lazy val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := "fi.pyppe.ircbot",
     version      := "0.1-SNAPSHOT",
-    scalaVersion := "2.10.2"
+    scalaVersion := "2.10.2",
+    exportJars   := true
     //offline := true
   )
 
@@ -30,17 +32,15 @@ object IrcBotBuild extends Build {
   lazy val master = Project(
     id = "master",
     base = file("master"),
-    settings = buildSettings ++ Seq(
-      libraryDependencies ++= commonLibs ++ masterLibs
-    )
+    settings =
+      buildSettings ++ Seq(libraryDependencies ++= commonLibs ++ masterLibs) ++ SbtOneJar.oneJarSettings
   ).dependsOn(common)
 
   lazy val slave = Project(
     id = "slave",
     base = file("slave"),
-    settings = buildSettings ++ Seq(
-      libraryDependencies ++= commonLibs
-    )
+    settings =
+      buildSettings ++ Seq(libraryDependencies ++= commonLibs) ++ SbtOneJar.oneJarSettings
   ).dependsOn(common)
 
 }
