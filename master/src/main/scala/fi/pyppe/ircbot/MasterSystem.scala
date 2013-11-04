@@ -31,7 +31,7 @@ object MasterSystem {
         //.addListener(new PircBotXExample()) //This class is a listener, so add it to the bots known listeners
         .addListener(new IrcListener(slaveLocation))
         .setServerHostname("open.ircnet.net")
-        .addAutoJoinChannel("#pyppe-testaa")
+        .addAutoJoinChannel(ircChannel)
         .buildConfiguration()
 
     try {
