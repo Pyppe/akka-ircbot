@@ -16,4 +16,6 @@ object CommonConfig {
   lazy val secureCookie = conf.getString("ircbot.secureCookie")
   lazy val actorSystemName = conf.getString("ircbot.actorSystemName")
 
+  lazy val ircChannel = conf.getString("ircbot.channel")
+
 }
