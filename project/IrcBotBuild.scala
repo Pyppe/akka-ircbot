@@ -40,7 +40,7 @@ object IrcBotBuild extends Build {
     id = "slave",
     base = file("slave"),
     settings =
-      buildSettings ++ Seq(libraryDependencies ++= commonLibs) ++ SbtOneJar.oneJarSettings
+      buildSettings ++ Seq(libraryDependencies ++= commonLibs ++ slaveLibs) ++ SbtOneJar.oneJarSettings
   ).dependsOn(common)
 
 }
@@ -63,6 +63,10 @@ object Dependencies {
 
   val masterLibs = Seq(
     "org.pircbotx"       %  "pircbotx"             % "2.0"
+  )
+
+  val slaveLibs = Seq(
+    "org.jsoup"          % "jsoup"                 % "1.7.2"
   )
 
 

@@ -7,6 +7,8 @@ import fi.pyppe.ircbot.{CommonConfig, LoggerSupport}
 import com.typesafe.config.ConfigFactory
 import org.joda.time.DateTime
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import org.jsoup.Jsoup
 
 private case class RssEntry(id: Int, title: String, time: DateTime, url: String)
 private case class Rss(entries: Seq[RssEntry])
@@ -51,7 +53,9 @@ class RssChecker(slave: ActorRef) extends Actor with LoggerSupport {
         val newEntries = entries.filter(_.id > previousId)
         if (newEntries.nonEmpty) slave ! Rss(newEntries)
       }
-      latestId = entries.headOption.map(_.id)
+      entries.headOption.foreach { latest =>
+        latestId = Some(latest.id)
+      }
   }
 
 }
@@ -59,17 +63,46 @@ class RssChecker(slave: ActorRef) extends Actor with LoggerSupport {
 class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
   import fi.pyppe.ircbot.event._
   import fi.pyppe.ircbot.action._
+  import SlaveWorker._
 
   implicit val ec = context.dispatcher
-  val master = context.actorSelection(masterLocation)
+  implicit val master = context.actorSelection(masterLocation)
 
   def receive = {
     case m: Message =>
-      master ! SayToChannel(m.channel, s"Yo, I got ${m.text}")
+      urls(m.text).foreach {
+        case Iltalehti(url) => sayTitle(m.channel, url)
+        case url => logger.debug(s"Not interested in $url")
+      }
     case rss: Rss =>
       rss.entries.foreach { rss =>
         master ! SayToChannel(CommonConfig.ircChannel, s"Breaking news: ${rss.title} ${rss.url}")
       }
   }
+
+}
+object SlaveWorker {
+  import fi.pyppe.ircbot.action._
+
+  val Iltalehti = """(https?://www\.iltalehti\.fi/.*\.shtml)""".r
+
+  val UrlRegex = ("\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +
+    "(\\w+:\\w+@)?(([-\\w]+\\.)+(com|org|net|gov" +
+    "|mil|biz|info|mobi|name|aero|jobs|museum" +
+    "|travel|[a-z]{2}))(:[\\d]{1,5})?" +
+    "(((\\/([-\\w~!$+|.,=]|%[a-f\\d]{2})+)+|\\/)+|\\?|#)?" +
+    "((\\?([-\\w~!$+|.,*:]|%[a-f\\d{2}])+=?" +
+    "([-\\w~!$+|.,*:=]|%[a-f\\d]{2})*)" +
+    "(&(?:[-\\w~!$+|.,*:]|%[a-f\\d{2}])+=?" +
+    "([-\\w~!$+|.,*:=]|%[a-f\\d]{2})*)*)*" +
+    "(#([-\\w~!$+|.,*:=]|%[a-f\\d]{2})*)?\\b").r
+
+  def urls(text: String) =
+    UrlRegex.findAllMatchIn(text).map(_.group(0)).toList
+
+  def sayTitle(channel: String, url: String)(implicit master: ActorRef) =
+    Future(Jsoup.connect(url).get.select("head title").text).map { title =>
+      master ! SayToChannel(channel, title)
+    }
 
 }
