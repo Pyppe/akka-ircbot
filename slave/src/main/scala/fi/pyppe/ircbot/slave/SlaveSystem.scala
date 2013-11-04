@@ -80,6 +80,11 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
       }
   }
 
+  def sayTitle(channel: String, url: String) =
+    Future(Jsoup.connect(url).get.select("head title").text).map { title =>
+      master ! SayToChannel(channel, title)
+    }
+
 }
 object SlaveWorker {
   import fi.pyppe.ircbot.action._
@@ -99,10 +104,5 @@ object SlaveWorker {
 
   def urls(text: String) =
     UrlRegex.findAllMatchIn(text).map(_.group(0)).toList
-
-  def sayTitle(channel: String, url: String)(implicit master: ActorRef) =
-    Future(Jsoup.connect(url).get.select("head title").text).map { title =>
-      master ! SayToChannel(channel, title)
-    }
 
 }
