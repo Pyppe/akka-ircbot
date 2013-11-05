@@ -21,18 +21,19 @@ object MasterSystem {
 
   def main(args: Array[String]) {
 
-    val configuration =
-      new Configuration.Builder()
-        .setName("maunobot")
-        .setLogin("maunobot")
-        .setAutoNickChange(true)
-        .setCapEnabled(true)
-        .setRealName("maunobot")
-        //.addListener(new PircBotXExample()) //This class is a listener, so add it to the bots known listeners
-        .addListener(new IrcListener(slaveLocation))
-        .setServerHostname("open.ircnet.net")
-        .addAutoJoinChannel(ircChannel)
-        .buildConfiguration()
+    val configuration = {
+      val builder =
+        new Configuration.Builder()
+          .setName(botName)
+          .setLogin(botName)
+          .setRealName(botName)
+          .setAutoNickChange(true)
+          .setCapEnabled(true)
+          .addListener(new IrcListener(slaveLocation))
+          .setServerHostname("open.ircnet.net")
+      ircChannels.foreach(c => builder.addAutoJoinChannel(c))
+      builder.buildConfiguration
+    }
 
     try {
       val bot = new PircBotX(configuration)
@@ -79,7 +80,9 @@ class MasterBroker(slaveLocation: String, bot: PircBotX) extends Actor with Logg
   override def receive = {
     case say: SayToChannel =>
       logger.debug(s"Got $say from $sender")
-      bot.getUserChannelDao.getChannel(say.channel).send.message(say.message)
+      say.channel.map(List(_)).getOrElse(ircChannels).foreach { channel =>
+        bot.getUserChannelDao.getChannel(channel).send.message(say.message)
+      }
   }
 
 }
