@@ -103,7 +103,10 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
     val titleFuture = Future(Jsoup.connect(url).get.select("head title").text)
 
     shortUrlFuture zip titleFuture map { case (shortUrl, title) =>
-      master ! SayToChannel(s"$shortUrl $title", Some(channel))
+      val t = title.toLowerCase
+      if (t.contains("ä") || t.contains("ö")) { // temp-hack
+        master ! SayToChannel(s"$shortUrl $title", Some(channel))
+      }
     }
   }
 
