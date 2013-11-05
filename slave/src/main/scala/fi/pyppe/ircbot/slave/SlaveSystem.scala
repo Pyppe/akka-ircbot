@@ -6,11 +6,15 @@ import SlaveConfig._
 import fi.pyppe.ircbot.AkkaUtil.remoteActorSystemConfiguration
 import fi.pyppe.ircbot.{CommonConfig, LoggerSupport}
 import com.typesafe.config.ConfigFactory
-import org.joda.time.DateTime
+import org.joda.time.{Period, DateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import org.jsoup.Jsoup
 import scala.io.Source
+import org.jsoup.nodes.Document
+import org.joda.time.format.PeriodFormatterBuilder
+import scala.util.Try
+import java.text.NumberFormat
 
 private case class RssEntry(id: Int, title: String, time: DateTime, url: String)
 private case class Rss(entries: Seq[RssEntry])
@@ -73,6 +77,9 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
   import fi.pyppe.ircbot.event._
   import fi.pyppe.ircbot.action._
   import SlaveWorker._
+  import org.json4s._
+  import org.json4s.jackson.JsonMethods._
+  implicit val formats = DefaultFormats
 
   implicit val ec = context.dispatcher
   implicit val master = context.actorSelection(masterLocation)
@@ -81,6 +88,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
     case m: Message =>
       urls(m.text).foreach {
         case Iltalehti(url) => sayTitle(m.channel, url)
+        case Youtube(url) => reactWithShortUrl(m.channel, url)(parseYoutubePage)
         case url => logger.debug(s"Not interested in $url")
       }
     case rss: Rss =>
@@ -89,24 +97,20 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
       }
   }
 
-  def sayTitle(channel: String, url: String) = {
-    import org.json4s._
-    import org.json4s.jackson.JsonMethods._
-    implicit val formats = DefaultFormats
+  def sayTitle(channel: String, url: String) =
+    reactWithShortUrl(channel, url)(_.select("head title").text)
 
+  def reactWithShortUrl(channel: String, url: String)(documentParser: (Document => String)) = {
     val shortUrlFuture = Future {
       val response =
         Source.fromURL(s"https://api-ssl.bitly.com/v3/shorten?login=$bitlyLogin&apiKey=$bitlyApiKey&longUrl=${encode(url)}").
           getLines.mkString
       (parse(response) \\ "url").extract[String]
     }
-    val titleFuture = Future(Jsoup.connect(url).get.select("head title").text)
+    val docFuture = Future(documentParser(Jsoup.connect(url).get))
 
-    shortUrlFuture zip titleFuture map { case (shortUrl, title) =>
-      val t = title.toLowerCase
-      if (t.contains("ä") || t.contains("ö")) { // temp-hack
-        master ! SayToChannel(s"$shortUrl $title", Some(channel))
-      }
+    shortUrlFuture zip docFuture map { case (shortUrl, data) =>
+      master ! SayToChannel(s"$shortUrl $data", Some(channel))
     }
   }
 
@@ -116,7 +120,32 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 object SlaveWorker {
   import fi.pyppe.ircbot.action._
 
+  private val hmsFormatter = new PeriodFormatterBuilder()
+    .minimumPrintedDigits(2)
+    .appendHours().appendSeparator(":")
+    .appendMinutes().appendSeparator(":")
+    .appendSeconds().appendSeparator(":")
+    .toFormatter
+
+  def parseYoutubePage(doc: Document) = {
+    val nf = NumberFormat.getInstance(java.util.Locale.forLanguageTag("fi"))
+    nf.setGroupingUsed(true)
+
+    def number(css: String) =
+      nf.format(doc.select(css).text.replaceAll("[^\\d]", "").toLong)
+
+    val title = doc.select("#watch-headline-title").text
+    val durationText = doc.select("meta[itemprop=duration]").attr("content") // PT4M8S
+    val duration = Try(hmsFormatter.print(Period.parse(durationText))).getOrElse(durationText)
+    val likes = number(".likes-count")
+    val dislikes = number(".dislikes-count")
+    val views = number(".watch-view-count")
+
+    s"Youtube: $title [$duration] ($views views, $likes likes, $dislikes dislikes)"
+  }
+
   val Iltalehti = """(https?://www\.iltalehti\.fi/.*\.shtml)""".r
+  val Youtube = """(https?://www\.(?:youtube\.com|youtu\.be)/.+)""".r
 
   val UrlRegex = ("\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +
     "(\\w+:\\w+@)?(([-\\w]+\\.)+(com|org|net|gov" +
