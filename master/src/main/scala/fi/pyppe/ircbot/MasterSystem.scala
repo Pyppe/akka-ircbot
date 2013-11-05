@@ -5,7 +5,7 @@ import AkkaUtil.remoteActorSystemConfiguration
 import fi.pyppe.ircbot.event._
 
 import akka.actor._
-import org.pircbotx.{Configuration, PircBotX}
+import org.pircbotx.{Channel, Configuration, PircBotX}
 import org.pircbotx.hooks.{ListenerAdapter, Listener}
 import org.pircbotx.hooks.events.{PrivateMessageEvent, MessageEvent}
 import org.joda.time.DateTime
@@ -73,6 +73,7 @@ class IrcListener[T <: PircBotX](slaveLocation: String) extends ListenerAdapter[
 
 class MasterBroker(slaveLocation: String, bot: PircBotX) extends Actor with LoggerSupport {
   import fi.pyppe.ircbot.action._
+  import scala.collection.JavaConversions._
 
   protected implicit val ec = context.dispatcher
   protected val slave = context.actorSelection(slaveLocation)
@@ -80,9 +81,14 @@ class MasterBroker(slaveLocation: String, bot: PircBotX) extends Actor with Logg
   override def receive = {
     case say: SayToChannel =>
       logger.debug(s"Got $say from $sender")
-      say.channel.map(List(_)).getOrElse(ircChannels).foreach { channel =>
-        bot.getUserChannelDao.getChannel(channel).send.message(say.message)
-      }
+      channels(say).foreach(_.send.message(say.message))
   }
+
+  private def channels(say: SayToChannel): List[Channel] =
+    say.channel.map { channelName =>
+      List(bot.getUserChannelDao.getChannel(channelName))
+    }.getOrElse {
+      bot.getUserChannelDao.getAllChannels.toList
+    }
 
 }
