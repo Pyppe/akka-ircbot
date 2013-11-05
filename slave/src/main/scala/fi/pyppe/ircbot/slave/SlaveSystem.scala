@@ -2,6 +2,7 @@ package fi.pyppe.ircbot.slave
 
 import akka.actor._
 import scala.concurrent.duration._
+import SlaveConfig._
 import fi.pyppe.ircbot.AkkaUtil.remoteActorSystemConfiguration
 import fi.pyppe.ircbot.{CommonConfig, LoggerSupport}
 import com.typesafe.config.ConfigFactory
@@ -9,6 +10,7 @@ import org.joda.time.DateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import org.jsoup.Jsoup
+import scala.io.Source
 
 private case class RssEntry(id: Int, title: String, time: DateTime, url: String)
 private case class Rss(entries: Seq[RssEntry])
@@ -24,8 +26,16 @@ object SlaveSystem {
     val rssChecker = RemoteActorSystem.actorOf(Props(classOf[RssChecker], slave), "rssChecker")
     RemoteActorSystem.scheduler.schedule(10.seconds, 1.minute, rssChecker, "POLL")
   }
-
 }
+
+object SlaveConfig {
+  private val conf = ConfigFactory.load("mauno.conf")
+
+  val imakesHost = conf.getString("imakesHost")
+  val bitlyLogin = conf.getString("bitly.login")
+  val bitlyApiKey = conf.getString("bitly.apiKey")
+}
+
 
 class RssChecker(slave: ActorRef) extends Actor with LoggerSupport {
 
@@ -34,7 +44,6 @@ class RssChecker(slave: ActorRef) extends Actor with LoggerSupport {
   import scala.xml.XML
   import java.net.URL
 
-  private val imakesHost = ConfigFactory.load("mauno.conf").getString("ircbot.imakesHost")
   private var latestId: Option[Int] = None
 
   def receive = {
@@ -80,10 +89,25 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
       }
   }
 
-  def sayTitle(channel: String, url: String) =
-    Future(Jsoup.connect(url).get.select("head title").text).map { title =>
-      master ! SayToChannel(channel, title)
+  def sayTitle(channel: String, url: String) = {
+    import org.json4s._
+    import org.json4s.jackson.JsonMethods._
+    implicit val formats = DefaultFormats
+
+    val shortUrlFuture = Future {
+      val response =
+        Source.fromURL(s"https://api-ssl.bitly.com/v3/shorten?login=$bitlyLogin&apiKey=$bitlyApiKey&longUrl=${encode(url)}").
+          getLines.mkString
+      (parse(response) \\ "url").extract[String]
     }
+    val titleFuture = Future(Jsoup.connect(url).get.select("head title").text)
+
+    shortUrlFuture zip titleFuture map { case (shortUrl, title) =>
+      master ! SayToChannel(channel, s"$shortUrl $title")
+    }
+  }
+
+  private def encode(s: String) = java.net.URLEncoder.encode(s, "utf-8")
 
 }
 object SlaveWorker {

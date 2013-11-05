@@ -66,7 +66,9 @@ object Dependencies {
   )
 
   val slaveLibs = Seq(
-    "org.jsoup"          % "jsoup"                 % "1.7.2"
+    "org.jsoup"          %  "jsoup"                 % "1.7.2",
+    "org.json4s"         %% "json4s-jackson"        % "3.2.5",
+    "org.json4s"         %% "json4s-ext"            % "3.2.5"
   )
 
 
