@@ -4,6 +4,8 @@ project/target/
 project/project/
 .idea_modules/
 /logs/
-/slave/src/main/resources/mauno.conf
 /start-master.sh
+
+mauno.conf
+twitter4j.properties
 

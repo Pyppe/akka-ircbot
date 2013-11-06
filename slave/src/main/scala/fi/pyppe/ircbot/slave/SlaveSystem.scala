@@ -87,8 +87,11 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
   def receive = {
     case m: Message =>
       urls(m.text).foreach {
-        case Iltalehti(url) => sayTitle(m.channel, url)
-        case Youtube(url) => reactWithShortUrl(m.channel, url)(parseYoutubePage)
+        case IltalehtiUrl(url) => sayTitle(m.channel, url)
+        case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(parseYoutubePage)
+        case TwitterUrl(status) => Tweets.statusText(status.toLong).map { text =>
+          master ! SayToChannel(text, m.channel)
+        }
         case url => logger.debug(s"Not interested in $url")
       }
     case rss: Rss =>
@@ -144,8 +147,9 @@ object SlaveWorker {
     s"Youtube: $title [$duration] ($views views, $likes likes, $dislikes dislikes)"
   }
 
-  val Iltalehti = """(https?://www\.iltalehti\.fi/.*\.shtml)""".r
-  val Youtube = """(https?://www\.(?:youtube\.com|youtu\.be)/.+)""".r
+  val IltalehtiUrl = """(https?://www\.iltalehti\.fi/.*\.shtml)""".r
+  val YoutubeUrl = """(https?://www\.(?:youtube\.com|youtu\.be)/.+)""".r
+  val TwitterUrl = """https?://twitter.com/\w+/status/(\d+)$""".r
 
   val UrlRegex = ("\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +
     "(\\w+:\\w+@)?(([-\\w]+\\.)+(com|org|net|gov" +
