@@ -4,13 +4,12 @@ import akka.actor._
 import scala.concurrent.duration._
 import SlaveConfig._
 import fi.pyppe.ircbot.AkkaUtil.remoteActorSystemConfiguration
-import fi.pyppe.ircbot.{CommonConfig, LoggerSupport}
+import fi.pyppe.ircbot.LoggerSupport
 import com.typesafe.config.ConfigFactory
 import org.joda.time.{Period, DateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import org.jsoup.Jsoup
-import scala.io.Source
 import org.jsoup.nodes.Document
 import org.joda.time.format.PeriodFormatterBuilder
 import scala.util.Try
@@ -36,8 +35,6 @@ object SlaveConfig {
   private val conf = ConfigFactory.load("mauno.conf")
 
   val imakesHost = conf.getString("imakesHost")
-  val bitlyLogin = conf.getString("bitly.login")
-  val bitlyApiKey = conf.getString("bitly.apiKey")
 }
 
 
@@ -90,6 +87,9 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
       urls.foreach {
         case IltalehtiUrl(url) => sayTitle(m.channel, url)
         case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(parseYoutubePage)
+        case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map { text =>
+          master ! SayToChannel(text, m.channel)
+        }
         case TwitterUrl(status) => Tweets.statusText(status.toLong).map { text =>
           master ! SayToChannel(text, m.channel)
         }
@@ -106,15 +106,8 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
     reactWithShortUrl(channel, url)(_.select("head title").text)
 
   def reactWithShortUrl(channel: String, url: String)(documentParser: (Document => String)) = {
-    val shortUrlFuture = Future {
-      val response =
-        Source.fromURL(s"https://api-ssl.bitly.com/v3/shorten?login=$bitlyLogin&apiKey=$bitlyApiKey&longUrl=${encode(url)}").
-          getLines.mkString
-      (parse(response) \\ "url").extract[String]
-    }
     val docFuture = Future(documentParser(Jsoup.connect(url).get))
-
-    shortUrlFuture zip docFuture map { case (shortUrl, data) =>
+    Bitly.shortLink(url) zip docFuture map { case (shortUrl, data) =>
       master ! SayToChannel(s"$shortUrl $data", Some(channel))
     }
   }
@@ -151,6 +144,7 @@ object SlaveWorker {
 
   val IltalehtiUrl = """(https?://www\.iltalehti\.fi/.*\.shtml)""".r
   val YoutubeUrl = """(https?://www\.(?:youtube\.com|youtu\.be)/.+)""".r
+  val FacebookPhotoUrl = """(https?://www\.facebook\.com/photo.php.+)""".r
   val TwitterUrl = """https?://twitter.com/\w+/status/(\d+)$""".r
 
   val UrlRegex = ("\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +

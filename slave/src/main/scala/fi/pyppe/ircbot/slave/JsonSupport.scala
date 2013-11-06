@@ -10,4 +10,6 @@ trait JsonSupport {
   def toJSONString(a: Any): String =
     compact(Extraction.decompose(a))
 
+  def parseJSON(str: String): JValue = parse(str)
+
 }
