@@ -86,7 +86,8 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 
   def receive = {
     case m: Message =>
-      urls(m.text).foreach {
+      val urls = parseUrls(m.text)
+      urls.foreach {
         case IltalehtiUrl(url) => sayTitle(m.channel, url)
         case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(parseYoutubePage)
         case TwitterUrl(status) => Tweets.statusText(status.toLong).map { text =>
@@ -94,6 +95,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
         }
         case url => logger.debug(s"Not interested in $url")
       }
+      urls.foreach(Linx.postLink(_, m.nickname, m.channel))
     case rss: Rss =>
       rss.entries.foreach { rss =>
         master ! SayToChannel(s"Breaking news: ${rss.title} ${rss.url}")
@@ -162,7 +164,7 @@ object SlaveWorker {
     "([-\\w~!$+|.,*:=]|%[a-f\\d]{2})*)*)*" +
     "(#([-\\w~!$+|.,*:=]|%[a-f\\d]{2})*)?\\b").r
 
-  def urls(text: String) =
+  def parseUrls(text: String) =
     UrlRegex.findAllMatchIn(text).map(_.group(0)).toList
 
 }
