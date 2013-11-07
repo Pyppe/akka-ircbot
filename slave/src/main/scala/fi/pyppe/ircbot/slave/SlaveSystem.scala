@@ -83,19 +83,25 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 
   def receive = {
     case m: Message =>
-      val urls = parseUrls(m.text)
-      urls.foreach {
-        case IltalehtiUrl(url) => sayTitle(m.channel, url)
-        case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(parseYoutubePage)
-        case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map { text =>
-          master ! SayToChannel(text, m.channel)
+      m.text match {
+        case Rain(q) => OpenWeatherMap.queryWeather(q).map {
+          case Some(text) => master ! SayToChannel(text, m.channel)
         }
-        case TwitterUrl(status) => Tweets.statusText(status.toLong).map { text =>
-          master ! SayToChannel(text, m.channel)
-        }
-        case url => logger.debug(s"Not interested in $url")
+        case _ =>
+          val urls = parseUrls(m.text)
+          urls.foreach {
+            case IltalehtiUrl(url) => sayTitle(m.channel, url)
+            case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(parseYoutubePage)
+            case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map { text =>
+              master ! SayToChannel(text, m.channel)
+            }
+            case TwitterUrl(status) => Tweets.statusText(status.toLong).map { text =>
+              master ! SayToChannel(text, m.channel)
+            }
+            case url => logger.debug(s"Not interested in $url")
+          }
+          urls.foreach(Linx.postLink(_, m.nickname, m.channel))
       }
-      urls.foreach(Linx.postLink(_, m.nickname, m.channel))
     case rss: Rss =>
       rss.entries.foreach { rss =>
         master ! SayToChannel(s"Breaking news: ${rss.title} ${rss.url}")
@@ -146,6 +152,7 @@ object SlaveWorker {
   val YoutubeUrl = """(https?://www\.(?:youtube\.com|youtu\.be)/.+)""".r
   val FacebookPhotoUrl = """(https?://www\.facebook\.com/photo.php.+)""".r
   val TwitterUrl = """https?://twitter.com/\w+/status/(\d+)$""".r
+  val Rain = """!sää ?(.*)""".r
 
   val UrlRegex = ("\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +
     "(\\w+:\\w+@)?(([-\\w]+\\.)+(com|org|net|gov" +
