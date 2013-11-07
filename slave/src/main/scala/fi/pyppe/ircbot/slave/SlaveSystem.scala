@@ -101,6 +101,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
             case url => logger.debug(s"Not interested in $url")
           }
           urls.foreach(Linx.postLink(_, m.nickname, m.channel))
+          FunnyPolice.react(m).map(t => master ! SayToChannel(t, m.channel))
       }
     case rss: Rss =>
       rss.entries.foreach { rss =>

@@ -58,7 +58,9 @@ object Dependencies {
     "com.typesafe"       %  "config"               % "1.0.2",
     "org.joda"           %  "joda-convert"         % "1.5",
     "joda-time"          %  "joda-time"            % "2.3",
-    "ch.qos.logback"     %  "logback-classic"      % "1.0.13"
+    "ch.qos.logback"     %  "logback-classic"      % "1.0.13",
+
+    "org.specs2"         %% "specs2"               % "2.3.3" % "test"
   )
 
   val masterLibs = Seq(
