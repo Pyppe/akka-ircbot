@@ -1,6 +1,5 @@
 package fi.pyppe.ircbot.slave
 
-import fi.pyppe.ircbot.LoggerSupport
 import fi.pyppe.ircbot.event.Message
 import org.joda.time.DateTime
 import scala.collection.mutable

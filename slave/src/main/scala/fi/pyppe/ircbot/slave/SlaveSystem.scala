@@ -78,7 +78,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 object SlaveWorker {
   import fi.pyppe.ircbot.action._
 
-  val Pipeline: List[MaybeSayer] = List(FunnyPolice, PeaceKeeper)
+  val Pipeline: List[MaybeSayer] = List(FunnyPolice, PeaceKeeper, Monologues)
 
   val IltalehtiUrl = """(https?://www\.iltalehti\.fi/.*\.shtml)""".r
   val YoutubeUrl = """(https?://www\.(?:youtube\.com|youtu\.be)/.+)""".r
