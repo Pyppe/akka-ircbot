@@ -109,6 +109,9 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
       }
   }
 
+  def pipelineReact(m: Message) =
+    Pipeline.foreach(_.react(m).map(t => master ! SayToChannel(t, m.channel)))
+
   def sayTitle(channel: String, url: String) =
     reactWithShortUrl(channel, url)(_.select("head title").text)
 
@@ -124,6 +127,8 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 }
 object SlaveWorker {
   import fi.pyppe.ircbot.action._
+
+  val Pipeline: List[MaybeSayer] = List(FunnyPolice, PeaceKeeper)
 
   private val hmsFormatter = new PeriodFormatterBuilder()
     .minimumPrintedDigits(2)

@@ -3,7 +3,7 @@ package fi.pyppe.ircbot.slave
 import fi.pyppe.ircbot.event.Message
 import org.joda.time.DateTime
 
-object FunnyPolice {
+object FunnyPolice extends MaybeSayer {
 
   private var recentHistory = List[Message]() // TODO: This should be channel-specific
   private var lastReact = new DateTime().minusDays(1)
@@ -13,7 +13,7 @@ object FunnyPolice {
   private val Hahehiho = List("a","e","i","o").map(x => s"[h$x]{3,}").mkString("|")
   private val Funny = """%s(:D+|:\)+|%s|lol[lo]*)%s""".format(Start,Hahehiho,End)
 
-  def react(m: Message): Option[String] =
+  override def react(m: Message): Option[String] =
     if (lastReact.plusHours(1).isBeforeNow) {
       recentHistory = recentHistory.take(10).filter(_.time.plusHours(2).isAfterNow) :+ m
       if (tooMuchFunnyGoingOn) {
