@@ -42,7 +42,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
         case _ =>
           val urls = parseUrls(m.text)
           urls.foreach {
-            case IltalehtiUrl(url) => sayTitle(m.channel, url)
+            case ILISUrl(url) => sayTitle(m.channel, url)
             case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(Youtube.parsePage)
             case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map { text =>
               master ! SayToChannel(text, m.channel)
@@ -80,7 +80,7 @@ object SlaveWorker {
 
   val Pipeline: List[MaybeSayer] = List(FunnyPolice, PeaceKeeper, Monologues)
 
-  val IltalehtiUrl = """(https?://www\.iltalehti\.fi/.*\.shtml)""".r
+  val ILISUrl = """(https?://www\.(?:iltalehti|iltasanomat)\.fi/.*\d{8,}\.s?html)""".r
   val YoutubeUrl = """(https?://www\.(?:youtube\.com|youtu\.be)/.+)""".r
   val FacebookPhotoUrl = """(https?://www\.facebook\.com/photo.php.+)""".r
   val TwitterUrl = """https?://twitter.com/\w+/status/(\d+)$""".r
