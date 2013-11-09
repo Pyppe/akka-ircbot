@@ -28,7 +28,7 @@ class RssChecker(slave: ActorRef) extends Actor with LoggerSupport {
       }
       logger.debug(s"Newest RSS: ${entries.headOption}")
       latestId.foreach { previousId =>
-        val newEntries = entries.filter(_.id > previousId)
+        val newEntries = entries.filter(_.id > previousId).take(5)
         if (newEntries.nonEmpty) slave ! Rss(newEntries)
       }
       entries.headOption.foreach { latest =>

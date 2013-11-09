@@ -27,7 +27,7 @@ object OpenWeatherMap extends LoggerSupport with JsonSupport {
           val json = parseJSON(r.getResponseBody)
           val city = (json \ "city" \ "name").extract[String]
           val country = (json \ "city" \ "country").extract[String]
-          val id = (json \ "city" \ "id").extract[Long]
+          val id = (json \ "city" \ "id").extract[String]
           val link = s"http://openweathermap.org/city/$id"
           val list = (json \ "list") match {
             case JArray(items) =>
@@ -43,7 +43,7 @@ object OpenWeatherMap extends LoggerSupport with JsonSupport {
                 Weather(time.toString("HH:mm"), temp, text, rain)
               }
           }
-          val data = list.take(3).map { w =>
+          val data = list.take(6).map { w =>
             val rain = w.rain match {
               case Some(v) if v > 0 => s" ($v mm/3h)"
               case _ => ""
