@@ -57,7 +57,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
       }
     case rss: Rss =>
       rss.entries.foreach { rss =>
-        master ! SayToChannel(s"Breaking news: ${rss.title} ${rss.url}")
+        master ! SayToChannel(s"Epäsärkyviä uutisia: ${rss.title} ${rss.url}")
       }
   }
 
