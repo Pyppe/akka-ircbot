@@ -7,11 +7,13 @@ class FunnyPoliceSpec extends Specification {
   "FunnyPolice.isFunnyText" should {
     testFunny("Diipa daapa Faufiu", false)
     testFunny(":Df", false)
-    testFunny(":Df", false)
 
     testFunny(":DD", true)
     testFunny(":)", true)
     testFunny("haha", true)
+    testFunny("very funny man! :P", true)
+    testFunny(":D:D", true)
+    testFunny("very :----D funny", true)
   }
 
   private def testFunny(text: String, expected: Boolean): Unit =
