@@ -50,6 +50,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
             case TwitterUrl(status) => Tweets.statusText(status.toLong).map { text =>
               master ! SayToChannel(text, m.channel)
             }
+            case ImdbUrl(id) => IMDB.movie(id).map(_.map(t => master ! SayToChannel(t, m.channel)))
             case url => logger.debug(s"Not interested in $url")
           }
           urls.foreach(Linx.postLink(_, m.nickname, m.channel))
@@ -84,6 +85,7 @@ object SlaveWorker {
   val YoutubeUrl = """(https?://(?:www.)?(?:youtube\.com|youtu\.be)/.+)""".r
   val FacebookPhotoUrl = """(https?://www\.facebook\.com/photo.php.+)""".r
   val TwitterUrl = """https?://twitter.com/\w+/status/(\d+)$""".r
+  val ImdbUrl = """.*imdb\.com/title/(tt\d+).*""".r
   val Rain = """!sää ?(.*)""".r
 
   val UrlRegex = ("\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +
