@@ -72,7 +72,9 @@ object Dependencies {
     "org.json4s"              %% "json4s-jackson"        % "3.2.5",
     "org.json4s"              %% "json4s-ext"            % "3.2.5",
     "org.twitter4j"           %  "twitter4j-core"        % "3.0.5",
-    "net.databinder.dispatch" %% "dispatch-core"         % "0.11.0"
+    "net.databinder.dispatch" %% "dispatch-core"         % "0.11.0",
+
+    "org.elasticsearch"       %  "elasticsearch"         % "0.90.7"
   )
 
 

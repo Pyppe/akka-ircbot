@@ -35,12 +35,12 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 
   def receive = {
     case m: Message =>
+      val urls = parseUrls(m.text)
       m.text match {
         case Rain(q) => OpenWeatherMap.queryWeather(q).map {
           case Some(text) => master ! SayToChannel(text, m.channel)
         }
         case _ =>
-          val urls = parseUrls(m.text)
           urls.foreach {
             case ILISUrl(url) => sayTitle(m.channel, url)
             case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(Youtube.parsePage)
@@ -56,6 +56,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
           urls.foreach(Linx.postLink(_, m.nickname, m.channel))
           pipelineReact(m)
       }
+      DB.index(m, urls)
     case rss: Rss =>
       rss.entries.foreach { rss =>
         master ! SayToChannel(s"Epäsärkyviä uutisia: ${rss.title} ${rss.url}")
