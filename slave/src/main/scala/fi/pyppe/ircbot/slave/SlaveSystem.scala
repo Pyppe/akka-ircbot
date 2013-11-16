@@ -36,7 +36,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
     case m: Message =>
       val urls = parseUrls(m.text)
       m.text match {
-        case Rain(q) => OpenWeatherMap.queryWeather(q).map {
+        case Rain(q) => OpenWeatherMap.queryWeather(q).collect {
           case Some(text) => master ! SayToChannel(text, m.channel)
         }
         case _ =>
