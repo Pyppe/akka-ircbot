@@ -20,8 +20,7 @@ object SlaveSystem {
     val RemoteActorSystem = ActorSystem(actorSystemName, remoteActorSystemConfiguration(host, slavePort, secureCookie))
     val masterLocation = s"akka.tcp://$actorSystemName@$host:$masterPort/user/$masterName"
     val slave = RemoteActorSystem.actorOf(Props(classOf[SlaveWorker], masterLocation), slaveName)
-    val rssChecker = RemoteActorSystem.actorOf(Props(classOf[RssChecker], slave), "rssChecker")
-    RemoteActorSystem.scheduler.schedule(10.seconds, 1.minute, rssChecker, "POLL")
+    RemoteActorSystem.actorOf(Props(classOf[RssChecker], slave), "rssChecker")
   }
 }
 
