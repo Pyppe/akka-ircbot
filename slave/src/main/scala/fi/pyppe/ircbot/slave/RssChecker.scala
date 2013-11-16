@@ -13,31 +13,33 @@ import java.io.InputStream
 class RssChecker(slave: ActorRef) extends Actor with LoggerSupport {
   import dispatch._, Defaults._
 
-  context.setReceiveTimeout(1.minute)
-
   private val imakesHost = ConfigFactory.load("mauno.conf").getString("imakesHost")
-
   private var latestId: Option[Int] = None
 
+  context.setReceiveTimeout(1.minute)
+  override def preStart(): Unit = checkRSS
+
   def receive = {
-    case ReceiveTimeout =>
-      logger.debug(s"Checking RSS")
-      Http(url(s"$imakesHost/atom.xml").GET).map {
-        case r if r.getStatusCode == 200 =>
-          val entries = parseRSS(r.getResponseBodyAsStream)
-          latestId.foreach { previousId =>
-            val newEntries = entries.filter(_.id > previousId).take(5)
-            if (newEntries.nonEmpty) {
-              logger.info(s"Found ${newEntries.size} new entries: ${newEntries.map(_.title).mkString(", ")}")
-              slave ! Rss(newEntries)
-            }
+    case ReceiveTimeout => checkRSS
+  }
+
+  def checkRSS = {
+    logger.debug(s"Checking RSS")
+    Http(url(s"$imakesHost/atom.xml").GET).map {
+      case r if r.getStatusCode == 200 =>
+        val entries = parseRSS(r.getResponseBodyAsStream)
+        latestId.foreach { previousId =>
+          val newEntries = entries.filter(_.id > previousId).take(5)
+          if (newEntries.nonEmpty) {
+            logger.info(s"Found ${newEntries.size} new entries: ${newEntries.map(_.title).mkString(", ")}")
+            slave ! Rss(newEntries)
           }
-          entries.headOption.foreach { latest =>
-            latestId = Some(latest.id)
-            logger.info(s"Set ${latest.id} as latestId")
-          }
-        case r => logger.error(s"Invalid HTTP response ${r.getStatusCode}")
-      }
+        }
+        entries.headOption.foreach { latest =>
+          latestId = Some(latest.id)
+        }
+      case r => logger.error(s"Invalid HTTP response ${r.getStatusCode}")
+    }
   }
 
   private def parseRSS(is: InputStream) = {
