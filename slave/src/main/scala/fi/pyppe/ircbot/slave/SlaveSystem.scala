@@ -36,7 +36,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
     case m: Message =>
       val urls = parseUrls(m.text)
       m.text match {
-        case Rain(q) => OpenWeatherMap.queryWeather(q).collect {
+        case Rain(plural, q) => OpenWeatherMap.queryWeather(q, plural == "t").collect {
           case Some(text) => master ! SayToChannel(text, m.channel)
         }
         case _ =>
@@ -86,7 +86,7 @@ object SlaveWorker {
   val FacebookPhotoUrl = """(https?://www\.facebook\.com/photo.php.+)""".r
   val TwitterUrl = """https?://twitter.com/\w+/status/(\d+)$""".r
   val ImdbUrl = """.*imdb\.com/title/(tt\d+).*""".r
-  val Rain = """!sää ?(.*)""".r
+  val Rain = """!sää(t?) ?(.*)""".r
 
   val UrlRegex = ("\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +
     "(\\w+:\\w+@)?(([-\\w]+\\.)+(com|org|net|gov" +

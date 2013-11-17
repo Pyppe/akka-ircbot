@@ -3,11 +3,13 @@ package fi.pyppe.ircbot.slave
 import fi.pyppe.ircbot.LoggerSupport
 import org.joda.time.DateTime
 import org.json4s._
+import org.joda.time.format.DateTimeFormat
+import java.util.Locale
 
 object OpenWeatherMap extends LoggerSupport with JsonSupport {
   import dispatch._, Defaults._
 
-  private case class Weather(time: String, temp: String, text: String, rain: Option[Double])
+  private case class Weather(time: String, temp: String, text: String, rain: Option[String])
   private val DefaultCountry = "FI"
   private val ShortCities = Map(
     "h" -> "Helsinki",
@@ -15,12 +17,15 @@ object OpenWeatherMap extends LoggerSupport with JsonSupport {
     "j" -> "Järvenpää",
     "v" -> "Vantaa"
   )
+  private val Count = 7
+  private val WeekDay = DateTimeFormat.forPattern("E").withLocale(Locale.forLanguageTag("fi"))
 
   // http://api.openweathermap.org/data/2.5/forecast?q=helsinki,FI&units=metric&lang=fi
-  def weather(city: String, country: String): Future[Option[String]] =
-    Http(url("http://api.openweathermap.org/data/2.5/forecast").
+  def weather(city: String, country: String, daily: Boolean): Future[Option[String]] =
+    Http(url(s"http://api.openweathermap.org/data/2.5/forecast${if (daily) "/daily" else ""}").
       addQueryParameter("q", s"$city,$country").
       addQueryParameter("units", "metric").
+      addQueryParameter("cnt", s"$Count").
       addQueryParameter("lang", "fi").GET).
       map {
         case r if r.getStatusCode == 200 =>
@@ -32,20 +37,13 @@ object OpenWeatherMap extends LoggerSupport with JsonSupport {
           val list = (json \ "list") match {
             case JArray(items) =>
               items.map { obj =>
-                val dt = (obj \ "dt").extract[Long]
-                val time = new DateTime(dt*1000)
-                val temp = (obj \ "main" \ "temp").extract[Double].toInt + "°C"
-                val text = (obj \ "weather" \ "description").extract[String]
-                val rain = (obj \ "rain" \ "3h") match {
-                  case JNothing => None
-                  case x => Some(x.extract[String].toDouble)
-                }
-                Weather(time.toString("HH:mm"), temp, text, rain)
+                if (daily) parseDailyItem(obj)
+                else parseNonDailyItem(obj)
               }
           }
-          val data = list.take(6).map { w =>
+          val data = list.take(Count).map { w =>
             val rain = w.rain match {
-              case Some(v) if v > 0 => s" ($v mm/3h)"
+              case Some(v) => s" ($v)"
               case _ => ""
             }
             s"${w.time} ${w.temp}, ${w.text}$rain"
@@ -59,13 +57,43 @@ object OpenWeatherMap extends LoggerSupport with JsonSupport {
           None
       }
 
-  def queryWeather(q: String) = {
+  private def parseNonDailyItem(obj: JValue) = {
+    val dt = (obj \ "dt").extract[Long]
+    val time = new DateTime(dt*1000)
+    val temp = (obj \ "main" \ "temp").extract[Double].toInt + "°C"
+    val text = (obj \ "weather" \ "description").extract[String]
+    val rain = (obj \ "rain" \ "3h") match {
+      case JNothing => None
+      case x =>
+        val rain = x.extract[String].toDouble
+        if (rain > 0) Some(s"$rain mm/3h")
+        else None
+    }
+    Weather(time.toString("HH:mm"), temp, text, rain)
+  }
+
+  private def parseDailyItem(obj: JValue) = {
+    val dt = (obj \ "dt").extract[Long]
+    val time = new DateTime(dt*1000)
+    val tempDay = (obj \ "temp" \ "day").extract[Double].toInt + "°C"
+    val text = (obj \\ "description").extract[String]
+    val rain = (obj \ "rain") match {
+      case JNothing => None
+      case x =>
+        val rain = x.extract[String].toDouble
+        if (rain > 0) Some(s"$rain mm")
+        else None
+    }
+    Weather(time.toString(WeekDay), tempDay, text, rain)
+  }
+
+  def queryWeather(q: String, daily: Boolean) = {
     val (city, country) = q.split(',').map(_.trim).filter(_.nonEmpty) match {
       case Array(city, country) => (city, country)
       case Array(city) => (city, DefaultCountry)
       case _ => ("Helsinki", DefaultCountry)
     }
-    weather(ShortCities.getOrElse(city, city), country)
+    weather(ShortCities.getOrElse(city, city), country, daily)
   }
 
 }
