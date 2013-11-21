@@ -47,7 +47,7 @@ object OpenWeatherMap extends LoggerSupport with JsonSupport {
               case _ => ""
             }
             s"${w.time} ${w.temp}, ${w.text}$rain"
-          }.mkString(" | ")
+          }.mkString(" | ")
           val smartCountry = if (country == DefaultCountry || country == "Finland") "" else s", $country"
           Some(s"$city$smartCountry: $data | $link")
         case _ => None
