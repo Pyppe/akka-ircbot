@@ -3,7 +3,7 @@ package fi.pyppe.ircbot.slave
 import akka.actor._
 import scala.concurrent.duration._
 import fi.pyppe.ircbot.AkkaUtil.remoteActorSystemConfiguration
-import fi.pyppe.ircbot.LoggerSupport
+import fi.pyppe.ircbot.{CommonConfig, LoggerSupport}
 import org.joda.time.DateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -37,19 +37,19 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
       val urls = parseUrls(m.text)
       m.text match {
         case Rain(plural, q) => OpenWeatherMap.queryWeather(q, plural == "t").collect {
-          case Some(text) => master ! SayToChannel(text, m.channel)
+          case Some(text) => sayToChannel(text, m.channel)
         }
         case _ =>
           urls.foreach {
             case ILISUrl(url) => sayTitle(m.channel, url)
             case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(Youtube.parsePage)
             case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map { text =>
-              master ! SayToChannel(text, m.channel)
+              sayToChannel(text, m.channel)
             }
             case TwitterUrl(status) => Tweets.statusText(status.toLong).map { text =>
-              master ! SayToChannel(text, m.channel)
+              sayToChannel(text, m.channel)
             }
-            case ImdbUrl(id) => IMDB.movie(id).map(_.map(t => master ! SayToChannel(t, m.channel)))
+            case ImdbUrl(id) => IMDB.movie(id).map(_.map(t => sayToChannel(t, m.channel)))
             case url => logger.debug(s"Not interested in $url")
           }
           urls.foreach(Linx.postLink(_, m.nickname, m.channel))
@@ -58,12 +58,12 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
       DB.index(m, urls)
     case rss: Rss =>
       rss.entries.foreach { rss =>
-        master ! SayToChannel(s"Epäsärkyviä uutisia: ${rss.title} ${rss.url}")
+        sayToChannels(s"Epäsärkyviä uutisia: ${rss.title} ${rss.url}")
       }
   }
 
   def pipelineReact(m: Message) =
-    Pipeline.foreach(_.react(m).map(t => master ! SayToChannel(t, m.channel)))
+    Pipeline.foreach(_.react(m).map(t => sayToChannel(t, m.channel)))
 
   def sayTitle(channel: String, url: String) =
     reactWithShortUrl(channel, url)(_.select("head title").text)
@@ -71,8 +71,25 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
   def reactWithShortUrl(channel: String, url: String)(documentParser: (Document => String)) = {
     val docFuture = Future(documentParser(Jsoup.connect(url).get))
     Bitly.shortLink(url) zip docFuture map { case (shortUrl, data) =>
-      master ! SayToChannel(s"$shortUrl $data", Some(channel))
+      sayToChannel(s"$shortUrl $data", channel)
     }
+  }
+
+  private def sayToChannels(msg: String) = {
+    master ! SayToChannel(msg)
+    DB.trackedChannel.foreach { channel =>
+      index(msg, channel)
+    }
+  }
+
+  private def sayToChannel(msg: String, channel: String) = {
+    master ! SayToChannel(msg, channel)
+    index(msg, channel)
+  }
+
+  private def index(msg: String, channel: String) = {
+    val m = Message(new DateTime, channel, CommonConfig.botName, "", "", msg)
+    DB.index(m, parseUrls(msg))
   }
 
 }

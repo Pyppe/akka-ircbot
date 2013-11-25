@@ -45,6 +45,8 @@ object DB extends JsonSupport with LoggerSupport {
     }
   }
 
+  val trackedChannel: Option[String] = conf.map(_.trackedChannel)
+
   private lazy val client: Option[TransportClient] = conf.map { conf =>
     val settings = ImmutableSettings.settingsBuilder()
     conf.clusterName.foreach( settings.put("cluster.name", _) )
@@ -68,30 +70,6 @@ object DB extends JsonSupport with LoggerSupport {
       }
   }
 
-  def search(q: String, nick: Option[String]) = {
-    client.map { c =>
-      val query = nick match {
-        case Some(nick) =>
-          val b = boolQuery()
-          b.must(termQuery("nickname", nick))
-          b.must(matchQuery("text", q))
-        case None =>
-          matchQuery("text", q)
-      }
-      Try {
-        val response = c.prepareSearch(Index).
-          setSearchType(SearchType.DFS_QUERY_THEN_FETCH).
-          setQuery(query).setSize(10).
-          execute().actionGet()
-        /*
-        response.getHits.hits.map { hit =>
-          hit.getSou
-        }
-        */
-      }
-    }
-  }
-
   def count: Long = client.map { c =>
     c.count(Requests.countRequest(Index)).actionGet().getCount
   } getOrElse 0
@@ -100,14 +78,6 @@ object DB extends JsonSupport with LoggerSupport {
     client.map { c =>
       action(c, conf.get)
     }
-
-  /*
-  def main(args: Array[String]) {
-    index(Message(new DateTime(), conf.get.trackedChannel, "Pyppe", "Pyppe", ".fi", "eka!"), Nil)
-    Thread.sleep(1000)
-    println(count)
-  }
-  */
 
 
 }
