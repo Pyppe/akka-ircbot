@@ -101,7 +101,7 @@ object SlaveWorker {
   val ILISUrl = """(https?://(?:www\.)?(?:iltalehti|iltasanomat)\.fi/.*\d{8,}.*\.s?html)""".r
   val YoutubeUrl = """(https?://(?:www.)?(?:youtube\.com|youtu\.be)/.+)""".r
   val FacebookPhotoUrl = """(https?://www\.facebook\.com/photo.php.+)""".r
-  val TwitterUrl = """https?://twitter.com/\w+/status/(\d+)$""".r
+  val TwitterUrl = """https?://twitter.com/\w+/status/(\d+).*""".r
   val ImdbUrl = """.*imdb\.com/title/(tt\d+).*""".r
   val Rain = """!sää(t?) ?(.*)""".r
 
