@@ -98,7 +98,7 @@ object SlaveWorker {
 
   val Pipeline: List[MaybeSayer] = List(FunnyPolice, PeaceKeeper, Monologues)
 
-  val ILISUrl = """(https?://(?:www\.)?(?:iltalehti|iltasanomat)\.fi/.*\d{8,}.*\.s?html)""".r
+  val ILISUrl = """(https?://(?:www\.)?(?:iltalehti|iltasanomat)\.fi/.*\d{8,}.*\.s?html.*)""".r
   val YoutubeUrl = """(https?://(?:www.)?(?:youtube\.com|youtu\.be)/.+)""".r
   val FacebookPhotoUrl = """(https?://www\.facebook\.com/photo.php.+)""".r
   val TwitterUrl = """https?://twitter.com/\w+/status/(\d+).*""".r
