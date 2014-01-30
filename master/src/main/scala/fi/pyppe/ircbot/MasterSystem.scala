@@ -29,6 +29,7 @@ object MasterSystem {
           .setRealName(botName)
           .setAutoNickChange(true)
           .setCapEnabled(true)
+          .setAutoReconnect(true)
           .addListener(new IrcListener(slaveLocation))
           .setServerHostname("open.ircnet.net")
       ircChannels.foreach(c => builder.addAutoJoinChannel(c))
