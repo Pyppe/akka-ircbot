@@ -13,6 +13,7 @@ import com.typesafe.config.{ConfigFactory, Config}
 import fi.pyppe.ircbot.CommonConfig._
 import fi.pyppe.ircbot.event.Message
 import fi.pyppe.ircbot.event.PrivateMessage
+import scala.util.control.NonFatal
 
 object MasterSystem {
 
@@ -41,7 +42,7 @@ object MasterSystem {
       RemoteActorSystem.actorOf(Props(classOf[MasterBroker], slaveLocation, bot), masterName)
       bot.startBot()
     } catch {
-      case e: Exception => e.printStackTrace
+      case NonFatal(e) => e.printStackTrace
     }
   }
 
