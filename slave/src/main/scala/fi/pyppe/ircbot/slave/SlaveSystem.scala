@@ -34,6 +34,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 
   def receive = {
     case m: Message =>
+      val t = System.currentTimeMillis
       val urls = parseUrls(m.text)
       m.text match {
         case Rain(plural, q) => OpenWeatherMap.queryWeather(q, plural == "t").collect {
@@ -56,6 +57,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
           pipelineReact(m)
       }
       DB.index(m, urls)
+      logger.debug(s"Processed [[${m.nickname}: ${m.text}]] in ${System.currentTimeMillis - t} ms")
     case rss: Rss =>
       rss.entries.foreach { rss =>
         sayToChannels(s"Epäsärkyviä uutisia: ${rss.title} ${rss.url}")
