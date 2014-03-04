@@ -43,6 +43,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
         case _ =>
           urls.foreach {
             case ILISUrl(url) => sayTitle(m.channel, url)
+            case NytUrl(url) => sayTitle(m.channel, url)
             case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(Youtube.parsePage)
             case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map { text =>
               sayToChannel(text, m.channel)
@@ -105,6 +106,7 @@ object SlaveWorker {
   val FacebookPhotoUrl = """(https?://www\.facebook\.com/photo.php.+)""".r
   val TwitterUrl = """https?://twitter.com/\w+/status/(\d+).*""".r
   val ImdbUrl = """.*imdb\.com/title/(tt\d+).*""".r
+  val NytUrl = """(.*nyt\.fi/a\d{10,}$)""".r
   val Rain = """!sää(t?) ?(.*)""".r
 
   val UrlRegex = ("\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +
