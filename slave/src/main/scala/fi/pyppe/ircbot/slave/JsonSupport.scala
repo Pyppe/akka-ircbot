@@ -14,6 +14,8 @@ trait JsonSupport {
 
   def parseJSON(str: String): JValue = parse(str)
 
+  def jsonPrettyString(json: JValue): String = pretty(json)
+
 }
 
 case object DateTimeMillisSerializer extends CustomSerializer[DateTime](format => (

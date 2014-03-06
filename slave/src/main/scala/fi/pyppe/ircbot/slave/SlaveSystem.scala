@@ -52,6 +52,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
               sayToChannel(text, m.channel)
             }
             case ImdbUrl(id) => IMDB.movie(id).map(_.map(t => sayToChannel(t, m.channel)))
+            case ImgurUrl(url) => Imgur.publicGet(url).map(sayToChannel(_, m.channel))
             case url => logger.debug(s"Not interested in $url")
           }
           urls.foreach(Linx.postLink(_, m.nickname, m.channel))
@@ -107,6 +108,7 @@ object SlaveWorker {
   val TwitterUrl = """https?://twitter.com/\w+/status/(\d+).*""".r
   val ImdbUrl = """.*imdb\.com/title/(tt\d+).*""".r
   val NytUrl = """(.*nyt\.fi/a\d{10,}$)""".r
+  val ImgurUrl = """(.*imgur\.com/.*)""".r
   val Rain = """!sää(t?) ?(.*)""".r
 
   val UrlRegex = ("\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +

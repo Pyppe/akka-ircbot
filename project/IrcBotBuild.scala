@@ -69,10 +69,11 @@ object Dependencies {
 
   val slaveLibs = Seq(
     "org.jsoup"               %  "jsoup"                 % "1.7.2",
-    "org.json4s"              %% "json4s-jackson"        % "3.2.5",
-    "org.json4s"              %% "json4s-ext"            % "3.2.5",
+    "org.json4s"              %% "json4s-jackson"        % "3.2.7",
+    "org.json4s"              %% "json4s-ext"            % "3.2.7",
     "org.twitter4j"           %  "twitter4j-core"        % "3.0.5",
     "net.databinder.dispatch" %% "dispatch-core"         % "0.11.0",
+    "commons-io"              %  "commons-io"            % "2.4",
 
     "org.elasticsearch"       %  "elasticsearch"         % "0.90.7"
   )
