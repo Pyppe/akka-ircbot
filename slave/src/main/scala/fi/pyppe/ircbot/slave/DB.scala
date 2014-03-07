@@ -46,7 +46,7 @@ object DB extends JsonSupport with LoggerSupport {
         None
     }
   }
-
+  val isEnabled = conf.isDefined
   val trackedChannel: Option[String] = conf.map(_.trackedChannel)
 
   private lazy val client: Option[TransportClient] = conf.map { conf =>
@@ -143,6 +143,5 @@ object DB extends JsonSupport with LoggerSupport {
     client.map { c =>
       action(c, conf.get)
     }
-
 
 }

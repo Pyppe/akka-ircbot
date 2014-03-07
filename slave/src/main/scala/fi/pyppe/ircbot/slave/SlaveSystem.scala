@@ -13,6 +13,8 @@ import org.jsoup.nodes.Document
 private case class RssEntry(id: Int, title: String, time: DateTime, url: String)
 private case class Rss(entries: Seq[RssEntry])
 
+case class MessageToMaster(m: String)
+
 object SlaveSystem {
   def main (args: Array[String]) {
     import fi.pyppe.ircbot.CommonConfig._
@@ -21,6 +23,9 @@ object SlaveSystem {
     val masterLocation = s"akka.tcp://$actorSystemName@$host:$masterPort/user/$masterName"
     val slave = RemoteActorSystem.actorOf(Props(classOf[SlaveWorker], masterLocation), slaveName)
     RemoteActorSystem.actorOf(Props(classOf[RssChecker], slave), "rssChecker")
+    if (DB.isEnabled) {
+      RemoteActorSystem.actorOf(Props(classOf[DBStatsGuy], slave), "dbStatsGuy")
+    }
   }
 }
 
@@ -60,10 +65,14 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
       }
       DB.index(m, urls)
       logger.debug(s"Processed [[${m.nickname}: ${m.text}]] in ${System.currentTimeMillis - t} ms")
-    case rss: Rss =>
-      rss.entries.foreach { rss =>
+
+    case Rss(entries) =>
+      entries.foreach { rss =>
         sayToChannels(s"Epäsärkyviä uutisia: ${rss.title} ${rss.url}")
       }
+
+    case MessageToMaster(message) =>
+      sayToChannels(message)
   }
 
   def pipelineReact(m: Message) =
