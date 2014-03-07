@@ -9,11 +9,23 @@ import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import scala.xml.XML
 import java.io.InputStream
+import scala.util.{Failure, Success, Try}
+import scala.util.control.NonFatal
+
+object RssChecker extends LoggerSupport {
+  val imakesHostOption: Option[String] = Try {
+    ConfigFactory.load("mauno.conf").getString("imakesHost")
+  } match {
+    case Success(v) => Some(v)
+    case Failure(e) =>
+      logger.warn(s"imakesHost not defined: not checking RSS")
+      None
+  }
+}
 
 class RssChecker(slave: ActorRef) extends Actor with LoggerSupport {
   import dispatch._, Defaults._
 
-  private val imakesHost = ConfigFactory.load("mauno.conf").getString("imakesHost")
   private var latestId: Option[Int] = None
 
   context.setReceiveTimeout(1.minute)
@@ -22,6 +34,8 @@ class RssChecker(slave: ActorRef) extends Actor with LoggerSupport {
   def receive = {
     case ReceiveTimeout => checkRSS
   }
+
+  private def imakesHost = RssChecker.imakesHostOption.get
 
   def checkRSS = {
     logger.debug(s"Checking RSS")

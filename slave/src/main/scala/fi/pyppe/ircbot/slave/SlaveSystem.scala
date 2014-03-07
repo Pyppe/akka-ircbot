@@ -22,7 +22,9 @@ object SlaveSystem {
     val RemoteActorSystem = ActorSystem(actorSystemName, remoteActorSystemConfiguration(host, slavePort, secureCookie))
     val masterLocation = s"akka.tcp://$actorSystemName@$host:$masterPort/user/$masterName"
     val slave = RemoteActorSystem.actorOf(Props(classOf[SlaveWorker], masterLocation), slaveName)
-    RemoteActorSystem.actorOf(Props(classOf[RssChecker], slave), "rssChecker")
+    if (RssChecker.imakesHostOption.isDefined) {
+      RemoteActorSystem.actorOf(Props(classOf[RssChecker], slave), "rssChecker")
+    }
     if (DB.isEnabled) {
       RemoteActorSystem.actorOf(Props(classOf[DBStatsGuy], slave), "dbStatsGuy")
     }
