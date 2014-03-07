@@ -5,6 +5,7 @@ import fi.pyppe.ircbot.event.Message
 
 import com.typesafe.config.ConfigFactory
 import org.joda.time.DateTime
+import scala.concurrent.Future
 import scala.util.Try
 import scala.util.control.NonFatal
 import org.elasticsearch.common.settings.ImmutableSettings
@@ -23,7 +24,7 @@ object IndexedMessage {
 
 object DB extends JsonSupport with LoggerSupport {
 
-  private case class Conf(hostname: String, port: Int, clusterName: Option[String], trackedChannel: String)
+  private case class Conf(hostname: String, httpPort: Int, tcpPort: Int, clusterName: Option[String], trackedChannel: String)
 
   private val Index = "ircbot"
   private val Type = "message"
@@ -35,12 +36,13 @@ object DB extends JsonSupport with LoggerSupport {
         if (conf.hasPath("elasticsearch.clusterName")) Some(conf.getString("elasticsearch.clusterName"))
         else None
       Some(Conf(conf.getString("elasticsearch.host"),
-                conf.getString("elasticsearch.port").toInt,
+                conf.getString("elasticsearch.httpPort").toInt,
+                conf.getString("elasticsearch.tcpPort").toInt,
                 clusterName,
                 conf.getString("elasticsearch.trackedChannel")))
     } catch {
       case e: Exception =>
-        logger.warn(s"No DB-support")
+        logger.warn(s"No DB-support", e)
         None
     }
   }
@@ -51,7 +53,7 @@ object DB extends JsonSupport with LoggerSupport {
     val settings = ImmutableSettings.settingsBuilder()
     conf.clusterName.foreach( settings.put("cluster.name", _) )
     val client = new TransportClient(settings)
-    client.addTransportAddress(new InetSocketTransportAddress(conf.hostname, conf.port))
+    client.addTransportAddress(new InetSocketTransportAddress(conf.hostname, conf.tcpPort))
     client
   }
 
@@ -61,7 +63,6 @@ object DB extends JsonSupport with LoggerSupport {
         Try {
           val indexRequest = new IndexRequest(Index, Type)
           val data = toJSONString(IndexedMessage(m, links))
-          println(data)
           indexRequest.source(data)
           client.index(indexRequest)
         }.recover {
@@ -69,6 +70,70 @@ object DB extends JsonSupport with LoggerSupport {
         }
       }
   }
+
+  case class TopTalkers(total: Int, talkers: List[Talker])
+  case class Talker(nick: String, count: Int)
+
+  def topTalkers(from: DateTime, to: DateTime): Future[TopTalkers] = conf.map { conf =>
+    import dispatch._, Defaults._
+    import org.json4s._
+
+    def parseFacets(json: JValue) = {
+      val tags = (json \ "facets" \ "tags")
+      val total = (tags \ "total").extract[Int]
+      val talkers = (tags \ "terms") match { case JArray(values) =>
+        values.map { value =>
+          val nick = (value \ "term").extract[String]
+          val count = (value \ "count").extract[Int]
+          Talker(nick, count)
+        }
+      }
+      TopTalkers(total, talkers)
+    }
+
+    Http(url(s"http://${conf.hostname}:${conf.httpPort}/$Index/_search").POST.setBody {
+      s"""
+         |{
+         |  "size": 1,
+         |  "query" : {
+         |    "range" : {
+         |      "time" : {
+         |        "from" : ${from.getMillis},
+         |        "to" : ${to.getMillis},
+         |        "include_lower" : true,
+         |        "include_upper" : true
+         |      }
+         |    }
+         |  },
+         |  "facets" : {
+         |    "tags" : {
+         |      "terms" : {
+         |        "field" : "nickname",
+         |        "size": 5
+         |      }
+         |    }
+         |  }
+         |}
+      """.stripMargin.trim
+    }).filter(_.getStatusCode == 200).
+      map(_.getResponseBody).
+      map(parseJSON).
+      map(parseFacets)
+      //map(jsonPrettyString(_))
+
+  }.getOrElse {
+    Future.failed(new Exception("No configuration"))
+  }
+
+  /*
+  def main(args: Array[String]) {
+    import scala.concurrent.duration.Duration
+    import scala.concurrent.Await
+    val start = DateTime.now.withTimeAtStartOfDay.withDayOfWeek(MONDAY).minusWeeks(1).toDateTime
+    val end = start.plusWeeks(1)
+    println(Await.result(topTalkers(start,end), Duration("5 seconds")))
+  }
+  */
 
   def count: Long = client.map { c =>
     c.count(Requests.countRequest(Index)).actionGet().getCount
