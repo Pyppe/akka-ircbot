@@ -10,7 +10,10 @@ class DBStatsGuy(slave: ActorRef) extends Actor with LoggerSupport {
   import scala.concurrent.duration._
 
   context.setReceiveTimeout(10.minutes)
-  override def preStart(): Unit = maybeNotify
+  override def preStart(): Unit = {
+    logger.info(s"Hello. I'm ready to work!")
+    maybeNotify
+  }
 
   private var lastReact = LocalDate.now
 
