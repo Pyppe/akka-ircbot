@@ -3,7 +3,6 @@ package fi.pyppe.ircbot.slave
 import akka.actor.{ReceiveTimeout, Actor, ActorRef}
 import fi.pyppe.ircbot.LoggerSupport
 import org.joda.time.LocalDate
-import java.text.NumberFormat
 
 class DBStatsGuy(slave: ActorRef) extends Actor with LoggerSupport {
   import dispatch._, Defaults._
@@ -46,19 +45,10 @@ class DBStatsGuy(slave: ActorRef) extends Actor with LoggerSupport {
         DB.topTalkers(start.toDateTimeAtStartOfDay,
                       today.toDateTimeAtStartOfDay).map { topTalkers =>
           val title = s"$timeTitle kovimmat pölisijät:"
-          val talkers = topTalkers.talkers.map(t => s"${t.nick}: ${format(t.count)}").mkString(", ")
-          val suffix = s"(yhteensä ${format(topTalkers.total)} viestiä)"
-          slave ! MessageToMaster(List(title, talkers, suffix).mkString(" "))
+          slave ! MessageToMaster(title + " " + DB.stringify(start, today, topTalkers))
         }
       }
     }
   }
-
-  private val nf = {
-    val nf = NumberFormat.getInstance(java.util.Locale.forLanguageTag("fi"))
-    nf.setGroupingUsed(true)
-    nf
-  }
-  private def format(n: Int) = nf.format(n)
 
 }

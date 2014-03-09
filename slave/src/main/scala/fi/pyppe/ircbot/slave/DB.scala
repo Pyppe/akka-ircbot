@@ -4,7 +4,7 @@ import fi.pyppe.ircbot.LoggerSupport
 import fi.pyppe.ircbot.event.Message
 
 import com.typesafe.config.ConfigFactory
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, Period, PeriodType, ReadablePartial}
 import scala.concurrent.Future
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -15,6 +15,7 @@ import org.elasticsearch.action.index.IndexRequest
 import org.elasticsearch.client.Requests
 import org.elasticsearch.index.query.QueryBuilders._
 import org.elasticsearch.action.search.SearchType
+import java.text.NumberFormat
 
 case class IndexedMessage(time: DateTime, nickname: String, username: String, text: String, links: List[String], linkCount: Int)
 object IndexedMessage {
@@ -125,15 +126,13 @@ object DB extends JsonSupport with LoggerSupport {
     Future.failed(new Exception("No configuration"))
   }
 
-  /*
-  def main(args: Array[String]) {
-    import scala.concurrent.duration.Duration
-    import scala.concurrent.Await
-    val start = DateTime.now.withTimeAtStartOfDay.withDayOfWeek(MONDAY).minusWeeks(1).toDateTime
-    val end = start.plusWeeks(1)
-    println(Await.result(topTalkers(start,end), Duration("5 seconds")))
+  def stringify(start: ReadablePartial, end: ReadablePartial, topTalkers: TopTalkers) = {
+    val dayCount = new Period(start, end, PeriodType.days).getDays
+    def dailyAvg(count: Int) = s"(${count / dayCount}/pv)"
+    val talkers = topTalkers.talkers.map(t => s"${t.nick}: ${formatNum(t.count)} ${dailyAvg(t.count)}").mkString(", ")
+    val suffix = s"Yhteensä ${formatNum(topTalkers.total)} viestiä ${dailyAvg(topTalkers.total)}"
+    List(talkers, "|", suffix).mkString(" ")
   }
-  */
 
   def count: Long = client.map { c =>
     c.count(Requests.countRequest(Index)).actionGet().getCount
@@ -143,5 +142,12 @@ object DB extends JsonSupport with LoggerSupport {
     client.map { c =>
       action(c, conf.get)
     }
+
+  private val nf = {
+    val nf = NumberFormat.getInstance(java.util.Locale.forLanguageTag("fi"))
+    nf.setGroupingUsed(true)
+    nf
+  }
+  private def formatNum(n: Int) = nf.format(n)
 
 }

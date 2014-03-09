@@ -3,7 +3,7 @@ package fi.pyppe.ircbot.slave
 import org.specs2.mutable._
 import org.joda.time.{DateTimeZone, LocalDate}
 import scala.concurrent.Future
-import fi.pyppe.ircbot.slave.DB.Talker
+import java.text.NumberFormat
 
 class DBIntegrationTest extends Specification {
 
@@ -22,8 +22,10 @@ class DBIntegrationTest extends Specification {
   "DB.topTalkers" should {
     s"give a result for $startDay – $endDay" in {
       val result = await(DB.topTalkers(toFinlandMidnight(startDay), toFinlandMidnight(endDay)))
+      println("DB.stringify:")
+      println(DB.stringify(startDay, endDay, result))
       result.total === 1377
-      result.talkers(2) === Talker("tero", 85)
+      result.talkers(2).count === 85
     }
   }
 
