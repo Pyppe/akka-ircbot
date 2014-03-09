@@ -38,7 +38,6 @@ class RssChecker(slave: ActorRef) extends Actor with LoggerSupport {
   private def imakesHost = RssChecker.imakesHostOption.get
 
   def checkRSS = {
-    logger.debug(s"Checking RSS")
     Http(url(s"$imakesHost/atom.xml").GET).map {
       case r if r.getStatusCode == 200 =>
         val entries = parseRSS(r.getResponseBodyAsStream)

@@ -41,6 +41,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 
   def receive = {
     case m: Message =>
+      def say(text: String) = sayToChannel(text, m.channel)
       val t = System.currentTimeMillis
       val urls = parseUrls(m.text)
       m.text match {
@@ -52,14 +53,11 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
             case ILISUrl(url) => sayTitle(m.channel, url)
             case NytUrl(url) => sayTitle(m.channel, url)
             case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(Youtube.parsePage)
-            case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map { text =>
-              sayToChannel(text, m.channel)
-            }
-            case TwitterUrl(status) => Tweets.statusText(status.toLong).map { text =>
-              sayToChannel(text, m.channel)
-            }
-            case ImdbUrl(id) => IMDB.movie(id).map(_.map(t => sayToChannel(t, m.channel)))
-            case ImgurUrl(url) => Imgur.publicGet(url).map(sayToChannel(_, m.channel))
+            case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map(say)
+            case TwitterUrl(status) => Tweets.statusText(status.toLong).map(say)
+            case ImdbUrl(id) => IMDB.movie(id).map(_.map(say))
+            case ImgurUrl(url) => Imgur.publicGet(url).map(say)
+            case GistUrl(id) => Github.gist(id.toLong).map(say)
             case url => logger.debug(s"Not interested in $url")
           }
           urls.foreach(Linx.postLink(_, m.nickname, m.channel))
@@ -120,6 +118,7 @@ object SlaveWorker {
   val ImdbUrl = """.*imdb\.com/title/(tt\d+).*""".r
   val NytUrl = """(.*nyt\.fi/a\d{10,}$)""".r
   val ImgurUrl = """(.*imgur\.com/.*)""".r
+  val GistUrl = """(?:.*gist\.github\.com/).*/([0-9]+)""".r
   val Rain = """!sää(t?) ?(.*)""".r
 
   val UrlRegex = ("\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +

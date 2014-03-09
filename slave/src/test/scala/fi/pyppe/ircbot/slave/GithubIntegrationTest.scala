@@ -1,0 +1,24 @@
+package fi.pyppe.ircbot.slave
+
+import org.specs2.mutable._
+import scala.concurrent.Future
+
+class GithubIntegrationTest extends Specification {
+
+  sequential
+
+  def await[T](f: Future[T]) =
+    scala.concurrent.Await.result(f, scala.concurrent.duration.Duration("5s"))
+
+  "SlaveSystem" should {
+    val gistUrl = "https://gist.github.com/Pyppe/9446546"
+    s"yield message for url $gistUrl" in {
+      val id = SlaveWorker.GistUrl.findFirstMatchIn(gistUrl).map(_.group(1).toLong).get
+      id === 9446546L
+      val message = await(Github.gist(id))
+      message.startsWith("Gist files: start-paused-torrent.scala, usage-example.txt") === true
+      message.endsWith("Pyppe (Pyry-Samuli Lahti, Onomatics)") === true
+    }
+  }
+
+}
