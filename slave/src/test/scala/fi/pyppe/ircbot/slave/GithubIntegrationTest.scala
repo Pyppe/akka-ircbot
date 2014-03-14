@@ -16,7 +16,7 @@ class GithubIntegrationTest extends Specification {
       val id = SlaveWorker.GistUrl.findFirstMatchIn(gistUrl).map(_.group(1).toLong).get
       id === 9446546L
       val message = await(Github.gist(id))
-      message.startsWith("Gist files: start-paused-torrent.scala, usage-example.txt") === true
+      message.startsWith("Simple scala script for wrapping `transmission-remote`: start-paused-torrent.scala, usage-example.txt") === true
       message.endsWith("Pyppe (Pyry-Samuli Lahti, Onomatics)") === true
     }
   }
