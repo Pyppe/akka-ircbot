@@ -9,6 +9,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import scala.util.control.NonFatal
 
 private case class RssEntry(id: Int, title: String, time: DateTime, url: String)
 private case class Rss(entries: Seq[RssEntry])
@@ -49,7 +50,8 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
           case Some(text) => sayToChannel(text, m.channel)
         }
         case _ =>
-          urls.foreach {
+
+          urls.collect {
             case ILISUrl(url) => sayTitle(m.channel, url)
             case NytUrl(url) => sayTitle(m.channel, url)
             case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(Youtube.parsePage)
@@ -58,8 +60,14 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
             case ImdbUrl(id) => IMDB.movie(id).map(_.map(say))
             case ImgurUrl(url) => Imgur.publicGet(url).map(say)
             case GistUrl(id) => Github.gist(id.toLong).map(say)
-            case url => logger.debug(s"Not interested in $url")
-          }
+            case url =>
+              logger.debug(s"Not interested in $url")
+              Future.successful()
+          }.foreach(_.onFailure {
+            case NonFatal(e) =>
+              logger.error(s"Error handling url", e)
+          })
+
           urls.foreach(Linx.postLink(_, m.nickname, m.channel))
           pipelineReact(m)
       }
