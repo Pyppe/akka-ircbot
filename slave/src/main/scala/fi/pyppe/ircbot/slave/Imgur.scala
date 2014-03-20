@@ -1,10 +1,8 @@
 package fi.pyppe.ircbot.slave
 
 import fi.pyppe.ircbot.LoggerSupport
-import scala.util.control.NonFatal
 import org.joda.time.DateTime
 import java.text.NumberFormat
-import org.apache.commons.io.FileUtils
 import com.typesafe.config.ConfigFactory
 import scala.util.Try
 import org.joda.time.format.DateTimeFormat
@@ -101,7 +99,8 @@ object Imgur extends LoggerSupport with JsonSupport {
       case ImageUrl(id) => s"http://imgur.com/gallery/$id"
     }
 
-    Http(url(galleryUrl).GET).filter(_.getStatusCode == 200).
+    Http(url(galleryUrl).setFollowRedirects(true).GET).
+      filter(_.getStatusCode == 200).
       map(_.getResponseBody).map { body =>
         """\s*image\s*:\s*(\{.*\})""".r.
           findFirstMatchIn(body).
