@@ -28,7 +28,7 @@ object Imgur extends LoggerSupport with JsonSupport {
 
   private def clientId = auth.get.clientId
 
-  private val ImageUrl = """.*imgur\.com/(\w+)(?:\.\w{3,4})?""".r
+  private val ImageUrl = """.*imgur\.com.*/(\w+)(?:\.\w{3,4})?$""".r
 
   /*
   private val Gallery = """.*imgur\.com/gallery/(\w+)""".r
