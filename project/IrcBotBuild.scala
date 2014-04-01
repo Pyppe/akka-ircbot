@@ -64,7 +64,7 @@ object Dependencies {
   )
 
   val masterLibs = Seq(
-    "org.pircbotx"       %  "pircbotx"             % "2.0"
+    "org.pircbotx"       %  "pircbotx"             % "2.0.1"
   )
 
   val slaveLibs = Seq(

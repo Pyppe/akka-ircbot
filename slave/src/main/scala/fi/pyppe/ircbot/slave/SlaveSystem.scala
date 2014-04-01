@@ -96,16 +96,24 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
     }
   }
 
-  private def sayToChannels(msg: String) = {
+  private def sayToChannels(longMessage: String) = {
+    val msg = safeMessageLength(longMessage)
     master ! SayToChannel(msg)
     DB.trackedChannel.foreach { channel =>
       index(msg, channel)
     }
   }
 
-  private def sayToChannel(msg: String, channel: String) = {
+  private def sayToChannel(longMessage: String, channel: String) = {
+    val msg = safeMessageLength(longMessage)
     master ! SayToChannel(msg, channel)
     index(msg, channel)
+  }
+
+  private def safeMessageLength(longMessage: String) = {
+    val maxSize = 490
+    if (longMessage.length > maxSize) longMessage.take(maxSize) + "..."
+    else longMessage
   }
 
   private def index(msg: String, channel: String) = {

@@ -31,6 +31,7 @@ object MasterSystem {
           .setAutoNickChange(true)
           .setCapEnabled(true)
           .setAutoReconnect(true)
+          .setAutoSplitMessage(false)
           .addListener(new IrcListener(slaveLocation))
           .setServerHostname("open.ircnet.net")
       ircChannels.foreach(c => builder.addAutoJoinChannel(c))
