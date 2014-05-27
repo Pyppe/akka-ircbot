@@ -7,7 +7,7 @@ object Github extends LoggerSupport with JsonSupport {
   import dispatch._, Defaults._
   import org.json4s._
 
-  def gist(id: Long): Future[String] =
+  def gist(id: String): Future[String] =
     httpGetAsJSON(s"https://api.github.com/gists/$id").
       flatMap(parseGistJSON)
 
@@ -16,12 +16,15 @@ object Github extends LoggerSupport with JsonSupport {
       map(parseUserJSON)
 
   private def parseGistJSON(json: JValue): Future[String] = {
-    val username = (json \ "user" \ "login").extract[String]
+    val username = (json \ "owner" \ "login").nonEmptyStringOpt
     val description = (json \ "description").nonEmptyStringOpt.map(d=>s"$d").getOrElse("Gist files")
     val files = (json \ "files" \\ "filename" \\ classOf[JString]).mkString(", ")
     val updated = (json \ "updated_at").nonEmptyStringOpt.map(time).getOrElse("N/A")
-    user(username).map { user =>
-      s"$description: $files | $updated | $user"
+    val info = s"$description: $files | $updated"
+    username.map { login =>
+      user(login).map(u => s"$info | $u")
+    } getOrElse {
+      Future.successful(info)
     }
   }
 

@@ -13,8 +13,8 @@ class GithubIntegrationTest extends Specification {
   "SlaveSystem" should {
     val gistUrl = "https://gist.github.com/Pyppe/9446546"
     s"yield message for url $gistUrl" in {
-      val id = SlaveWorker.GistUrl.findFirstMatchIn(gistUrl).map(_.group(1).toLong).get
-      id === 9446546L
+      val id = SlaveWorker.GistUrl.findFirstMatchIn(gistUrl).map(_.group(1)).get
+      id === "9446546"
       val message = await(Github.gist(id))
       message.startsWith("Simple scala script for wrapping `transmission-remote`: start-paused-torrent.scala, usage-example.txt") === true
       message.endsWith("Pyppe (Pyry-Samuli Lahti, Onomatics)") === true

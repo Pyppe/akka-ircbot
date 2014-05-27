@@ -59,7 +59,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
             case TwitterUrl(status) => Tweets.statusText(status.toLong).map(say)
             case ImdbUrl(id) => IMDB.movie(id).map(_.map(say))
             case ImgurUrl(url) => Imgur.publicGet(url).map(say)
-            case GistUrl(id) => Github.gist(id.toLong).map(say)
+            case GistUrl(id) => Github.gist(id).map(say)
             case url =>
               logger.debug(s"Not interested in $url")
               Future.successful()
@@ -134,7 +134,7 @@ object SlaveWorker {
   val ImdbUrl = """.*imdb\.com/title/(tt\d+).*""".r
   val NytUrl = """(.*nyt\.fi/a\d{10,}$)""".r
   val ImgurUrl = """(.*imgur\.com/.*)""".r
-  val GistUrl = """(?:.*gist\.github\.com/).*/([0-9]+)""".r
+  val GistUrl = """(?:.*gist\.github\.com/).*/(\w+)""".r
   val Rain = """!sää(t?) ?(.*)""".r
 
   val UrlRegex = ("\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +
