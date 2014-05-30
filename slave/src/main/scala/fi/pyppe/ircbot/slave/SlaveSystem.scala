@@ -137,7 +137,7 @@ object SlaveWorker {
   val GistUrl = """(?:.*gist\.github\.com/).*/(\w+)""".r
   val Rain = """!sää(t?) ?(.*)""".r
 
-  val UrlRegex = ("\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +
+  val UrlRegex = ("(?i)\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +
     "(\\w+:\\w+@)?(([-\\w]+\\.)+(com|org|net|gov" +
     "|mil|biz|info|mobi|name|aero|jobs|museum" +
     "|travel|[a-z]{2}))(:[\\d]{1,5})?" +
