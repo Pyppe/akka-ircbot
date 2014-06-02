@@ -75,7 +75,7 @@ object Dependencies {
     "net.databinder.dispatch" %% "dispatch-core"         % "0.11.0",
     "commons-io"              %  "commons-io"            % "2.4",
 
-    "org.elasticsearch"       %  "elasticsearch"         % "1.0.1"
+    "org.elasticsearch"       %  "elasticsearch"         % "1.2.0"
   )
 
 
