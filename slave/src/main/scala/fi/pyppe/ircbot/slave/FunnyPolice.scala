@@ -7,6 +7,17 @@ object FunnyPolice extends TimedChannelMaybeSayer {
 
   private var recentHistory = Map[String, List[Message]]()
 
+  private val Responses = Map(
+    0 -> "HAHA! XDD",
+    1 -> "*trisk*",
+    2 -> "ahahahah :D",
+    3 -> "hoho",
+    4 -> "hihi",
+    5 -> "MUHAHH!",
+    6 -> "hahah! mulle kävi eilen ihan samalla tavalla! :D",
+    7 -> "*facepalm*"
+  )
+
   private val Start = "(?: |^)"
   private val End = "(?: |$)"
   private val Hahehiho = List("a","e","i","o").map(x => s"[h$x]{3,}").mkString("|")
@@ -19,9 +30,12 @@ object FunnyPolice extends TimedChannelMaybeSayer {
     recentHistory += m.channel -> channelHistory
     if (tooMuchFunnyGoingOn(channelHistory)) {
       recentHistory -= m.channel
-      Some(s"HAHA! :DDD")
+      Some(randomResponse())
     } else None
   }
+
+  private def randomResponse(): String =
+    Responses((math.random * Responses.size).toInt)
 
   def isFunnyText(text: String) = text.matches(Funny)
 

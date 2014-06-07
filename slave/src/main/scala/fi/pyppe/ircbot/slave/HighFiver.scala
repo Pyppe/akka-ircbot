@@ -6,15 +6,15 @@ import fi.pyppe.ircbot.CommonConfig
 
 object HighFiver extends TimedChannelMaybeSayer {
 
-  val HighFive = """( *)(\\o).*""".r
+  val HighFiveStart = """( *)\\o.*""".r
+  val HighFiveEnd = """(.*)\\o$""".r
 
   override def silentPeriod: Duration = Duration.standardMinutes(3)
 
   override def onReact(m: Message): Option[String] = m.text match {
-    case HighFive(spaces, hf) =>
-      Some(highFive(spaces.size, m))
-    case _ =>
-      None
+    case HighFiveStart(spaces) => Some(highFive(spaces.size, m))
+    case HighFiveEnd(spaces) => Some(highFive(spaces.size, m))
+    case _ => None
   }
 
   private def highFive(prefixSpace: Int, m: Message) = {
