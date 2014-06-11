@@ -9,7 +9,7 @@ object FunnyPolice extends TimedChannelMaybeSayer {
 
   private val Responses = Map(
     0 -> "HAHA! XDD",
-    1 -> "*trisk*",
+    1 -> "*tirsk*",
     2 -> "ahahahah :D",
     3 -> "hoho",
     4 -> "hihi",
