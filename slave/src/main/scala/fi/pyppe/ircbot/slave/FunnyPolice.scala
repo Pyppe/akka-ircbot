@@ -26,7 +26,7 @@ object FunnyPolice extends TimedChannelMaybeSayer {
   override def silentPeriod: Duration = Duration.standardHours(1)
 
   override def onReact(m: Message): Option[String] = {
-    val channelHistory = m :: recentHistory.getOrElse(m.channel, Nil).take(8).filter(_.time.plusHours(2).isAfterNow)
+    val channelHistory = m :: recentHistory.getOrElse(m.channel, Nil).take(10).filter(_.time.plusHours(2).isAfterNow)
     recentHistory += m.channel -> channelHistory
     if (tooMuchFunnyGoingOn(channelHistory)) {
       recentHistory -= m.channel
@@ -40,6 +40,6 @@ object FunnyPolice extends TimedChannelMaybeSayer {
   def isFunnyText(text: String) = text.matches(Funny)
 
   private def tooMuchFunnyGoingOn(messages: List[Message]): Boolean =
-    messages.filter(m => isFunnyText(m.text)).size > 3
+    messages.filter(m => isFunnyText(m.text)).size > 2
 
 }
