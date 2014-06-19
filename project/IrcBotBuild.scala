@@ -60,7 +60,7 @@ object Dependencies {
     "joda-time"          %  "joda-time"            % "2.3",
     "ch.qos.logback"     %  "logback-classic"      % "1.0.13",
 
-    "org.specs2"         %% "specs2"               % "2.3.3" % "test"
+    "org.specs2"         %% "specs2"               % "2.3.12" % "test"
   )
 
   val masterLibs = Seq(

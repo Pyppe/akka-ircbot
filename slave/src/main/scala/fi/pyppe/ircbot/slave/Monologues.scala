@@ -8,10 +8,13 @@ object Monologues extends TimedChannelMaybeSayer {
   private val Threshold = 10
   private case class Status(nick: String, counter: Int = 1)
   private val state = mutable.Map[String, Status]()
-  private val Responses = Map(
-    0 -> "todella syvällistä syväluotaavaa syväanalyysiä. Zzz ->",
-    1 -> "oi kuinka mielenkiintoista. Kerro toki lisää!",
-    2 -> "aaah... jaksaisin kuunnella sun tarinointia vaikka ikuisesti! Sä oot paras!"
+  val Responses = Seq(
+    "todella syvällistä syväluotaavaa syväanalyysiä. Zzz ->",
+    "oi kuinka mielenkiintoista. Kerro toki lisää!",
+    "aaah... jaksaisin kuunnella sun tarinointia vaikka ikuisesti! Sä oot paras!",
+    "ihanku olisin kuullut tän tarinan ennenkin...",
+    "kiviäkin kiinnostaa! Tää oli huikee juttu!",
+    "plz blow me. My brain is having an erection!"
   )
 
   override def silentPeriod: Duration = Duration.standardHours(3)
@@ -23,7 +26,7 @@ object Monologues extends TimedChannelMaybeSayer {
     } else None
 
   def oneLiner(nickname: String): String =
-    s"$nickname: ${Responses((math.random * Responses.size).toInt)}"
+    randomResponseOf(Responses)(r => s"$nickname: $r")
 
   private def updateState(m: Message): Int =
     state.get(m.channel) match {

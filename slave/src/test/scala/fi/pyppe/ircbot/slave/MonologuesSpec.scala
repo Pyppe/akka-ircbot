@@ -3,7 +3,7 @@ package fi.pyppe.ircbot.slave
 import org.specs2.mutable._
 import fi.pyppe.ircbot.event.Message
 import org.joda.time.DateTime
-import Monologues.{oneLiner, react}
+import Monologues.react
 
 class MonologuesSpec extends Specification {
   sequential
@@ -26,15 +26,16 @@ class MonologuesSpec extends Specification {
       timesNothingHappens(10, JohnTalks)
       react(MaryTalksElsewhere) === None
       react(MaryTalksElsewhere) === None
-      react(JohnTalks) === Some(oneLiner("John"))
+      react(JohnTalks).get must beOneOf (possibleOneLiners("John"): _*)
       timesNothingHappens(8, MaryTalksElsewhere)
       timesNothingHappens(11, JohnTalks)
-      react(MaryTalksElsewhere) === Some(oneLiner("Mary"))
-
-      true === true // stupid
+      react(MaryTalksElsewhere).get must beOneOf (possibleOneLiners("Mary"): _*)
     }
 
   }
+
+  private def possibleOneLiners(nick: String): Seq[String] =
+    Monologues.Responses.map(r => s"$nick: $r")
 
   private def timesNothingHappens(count: Int, msg: Message) =
     (1 to count) foreach(_ => react(msg) === None)
