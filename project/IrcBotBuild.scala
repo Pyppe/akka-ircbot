@@ -74,8 +74,9 @@ object Dependencies {
     "org.twitter4j"           %  "twitter4j-core"        % "3.0.5",
     "net.databinder.dispatch" %% "dispatch-core"         % "0.11.0",
     "commons-io"              %  "commons-io"            % "2.4",
+    "ca.pjer"                 % "chatter-bot-api"        % "1.3.1",
 
-    "org.elasticsearch"       %  "elasticsearch"         % "1.2.0"
+    "org.elasticsearch"       %  "elasticsearch"         % "1.3.1"
   )
 
 

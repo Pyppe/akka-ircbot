@@ -49,6 +49,8 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
         case Rain(plural, q) => OpenWeatherMap.queryWeather(q, plural == "t").collect {
           case Some(text) => sayToChannel(text, m.channel)
         }
+        case MessageToBot(message) =>
+          BotWithinBot.think(message).map(t => say(s"${m.nickname}: $t"))
         case _ =>
 
           urls.collect {
@@ -136,6 +138,7 @@ object SlaveWorker {
   val ImgurUrl = """(.*imgur\.com/.*)""".r
   val GistUrl = """(?:.*gist\.github\.com/).*/(\w+)""".r
   val Rain = """!sää(t?) ?(.*)""".r
+  val MessageToBot = "%s[:, ]*(.+)".format(CommonConfig.botName).r
 
   val UrlRegex = ("(?i)\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +
     "(\\w+:\\w+@)?(([-\\w]+\\.)+(com|org|net|gov" +
