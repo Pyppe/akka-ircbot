@@ -24,13 +24,14 @@ object IndexedMessage {
 }
 
 object DB extends JsonSupport with LoggerSupport {
-
-  private case class Conf(hostname: String, httpPort: Int, tcpPort: Int, clusterName: Option[String], trackedChannel: String)
-
   private val Index = "ircbot"
   private val Type = "message"
 
-  private val conf: Option[Conf] = {
+  case class Conf(hostname: String, httpPort: Int, tcpPort: Int, clusterName: Option[String], trackedChannel: String) {
+    def searchUrl: String = s"http://$hostname:$httpPort/$Index/_search"
+  }
+
+  val conf: Option[Conf] = {
     val conf = ConfigFactory.load("mauno.conf")
     try {
       val clusterName =
@@ -92,7 +93,7 @@ object DB extends JsonSupport with LoggerSupport {
       TopTalkers(total, talkers)
     }
 
-    Http(url(s"http://${conf.hostname}:${conf.httpPort}/$Index/_search").POST.setBody {
+    Http(url(conf.searchUrl).POST.setBody {
       s"""
          |{
          |  "size": 1,
@@ -133,10 +134,6 @@ object DB extends JsonSupport with LoggerSupport {
     val suffix = s"Yhteensä ${formatNum(topTalkers.total)} viestiä ${dailyAvg(topTalkers.total)}"
     List(talkers, "|", suffix).mkString(" ")
   }
-
-  def count: Long = client.map { c =>
-    c.count(Requests.countRequest(Index)).actionGet().getCount
-  } getOrElse 0
 
   private def withClientAndConf[T](action: (TransportClient, Conf) => T) =
     client.map { c =>

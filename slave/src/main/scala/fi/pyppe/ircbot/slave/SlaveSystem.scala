@@ -69,8 +69,10 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
             case NonFatal(e) =>
               logger.error(s"Error handling url", e)
           })
-
-          urls.foreach(Linx.postLink(_, m.nickname, m.channel))
+          urls.foreach { u =>
+            Linx.postLink(u, m.nickname, m.channel)
+            OldLinkPolice.reactOnLink(m, u).foreach(_.foreach(say))
+          }
           pipelineReact(m)
       }
       DB.index(m, urls)
