@@ -53,17 +53,26 @@ object OldLinkPolice extends JsonSupport with LoggerSupport {
 
   def reactOnLink(m: Message, link: String)(implicit ec: ExecutionContext): Future[Option[String]] = {
     DB.conf.filter(c => m.channel.contains(c.trackedChannel)).map { conf =>
+      val links = Set(link.replaceAll("^http:", "https:"), link.replaceAll("^https:", "http:"))
+
       val alreadyContains = synchronized {
         lastLinkReactions = lastLinkReactions.filter(_._2.plusHours(1).isAfterNow)
-        lastLinkReactions.contains(link)
+        links.exists(lastLinkReactions.contains)
       }
       if (alreadyContains) {
         Future.successful(None)
       } else {
+        def termQ(link: String) = ("term" -> (("links" -> link): JValue)): JValue
+
+        val filter = links.size match {
+          case 1 => termQ(links.head)
+          case _ => ("or" -> (links.map(termQ): JValue)): JValue
+        }
+
         val requestJson =
           ("query" -> ("filtered" ->
-            ("query" -> ("term" -> ("links" -> link))) ~
-              ("filter" -> ("range" -> ("time" -> ("lt" -> DateTime.now.minusMinutes(5).getMillis))))
+            ("query" -> ("range" -> ("time" -> ("lt" -> DateTime.now.minusMinutes(5).getMillis)))) ~
+              ("filter" -> filter)
             )) ~ ("size" -> 1)
 
         val future =
@@ -74,7 +83,9 @@ object OldLinkPolice extends JsonSupport with LoggerSupport {
             map { maybePrevious =>
               maybePrevious.map { previous =>
                 synchronized {
-                  lastLinkReactions += link -> DateTime.now
+                  links.foreach { link =>
+                    lastLinkReactions += link -> DateTime.now
+                  }
                 }
                 inform(m, previous, link)
               }
