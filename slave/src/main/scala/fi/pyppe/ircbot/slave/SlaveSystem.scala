@@ -142,18 +142,8 @@ object SlaveWorker {
   val Rain = """!sää(t?) ?(.*)""".r
   val MessageToBot = "%s[:, ]*(.+)".format(CommonConfig.botName).r
 
-  val UrlRegex = ("(?i)\\b(((ht|f)tp(s?)\\:\\/\\/|~\\/|\\/)|www.)" +
-    "(\\w+:\\w+@)?(([-\\w]+\\.)+(com|org|net|gov" +
-    "|mil|biz|info|mobi|name|aero|jobs|museum" +
-    "|travel|[a-z]{2}))(:[\\d]{1,5})?" +
-    "(((\\/([-\\w~!$+|.,=]|%[a-f\\d]{2})+)+|\\/)+|\\?|#)?" +
-    "((\\?([-\\w~!$+|.,*:]|%[a-f\\d{2}])+=?" +
-    "([-\\w~!$+|.,*:=]|%[a-f\\d]{2})*)" +
-    "(&(?:[-\\w~!$+|.,*:]|%[a-f\\d{2}])+=?" +
-    "([-\\w~!$+|.,*:=]|%[a-f\\d]{2})*)*)*" +
-    "(#([-\\w~!$+|.,*:=]|%[a-f\\d]{2})*)?\\b").r
-
-  def parseUrls(text: String) =
-    UrlRegex.findAllMatchIn(text).map(_.group(0)).toList
+  def parseUrls(text: String): List[String] =
+    text.split("\\s+").map(_.trim).filter(_.matches("(?i)^(ftp|https?)://.+")).
+      map(_.replaceAll("(.*)[,!.:?()<>]$", "$1")).toList
 
 }
