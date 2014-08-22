@@ -104,7 +104,7 @@ object OldLinkPolice extends JsonSupport with LoggerSupport {
 
   def inform(m: Message, previous: PreviousMessage, link: String): String = {
     val url = maunottajatWww.map(_ + "/#/?id=" + URLEncoder.encode(previous.id, "UTF-8")).getOrElse("")
-    val slur = Slurs((math.random * Responses.size).toInt)
+    val slur = Slurs((math.random * Slurs.size).toInt)
     val whoAndWhen = Responses((math.random * Responses.size).toInt)(
       Option(previous.nickname).filterNot(_ == m.nickname),
       prettyTime.format(previous.time.toDate)
