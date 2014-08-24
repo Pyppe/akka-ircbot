@@ -40,7 +40,9 @@ object IrcBotBuild extends Build {
     id = "slave",
     base = file("slave"),
     settings =
-      buildSettings ++ Seq(libraryDependencies ++= commonLibs ++ slaveLibs) ++ SbtOneJar.oneJarSettings
+      buildSettings ++ Seq(libraryDependencies ++= commonLibs ++ slaveLibs) ++ SbtOneJar.oneJarSettings ++ Seq(
+        mainClass in SbtOneJar.oneJar := Some("fi.pyppe.ircbot.slave.SlaveSystem")
+      )
   ).dependsOn(common)
 
 }
