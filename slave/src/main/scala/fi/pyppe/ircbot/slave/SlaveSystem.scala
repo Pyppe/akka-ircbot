@@ -50,7 +50,8 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
           case Some(text) => sayToChannel(text, m.channel)
         }
         case MessageToBot(message) =>
-          BotWithinBot.think(message).map(t => say(s"${m.nickname}: $t"))
+          //BotWithinBot.think(message).map(t => say(s"${m.nickname}: $t"))
+          SmartBot.think(message).map(t => say(s"${m.nickname}: $t"))
         case _ =>
 
           urls.collect {
