@@ -56,6 +56,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 
           urls.collect {
             case ILISUrl(url) => sayTitle(m.channel, url)
+            case BBCUrl(url) => sayTitle(m.channel, url)
             case NytUrl(url) => sayTitle(m.channel, url)
             case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(Youtube.parsePage)
             case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map(say)
@@ -132,10 +133,11 @@ object SlaveWorker {
 
   val Pipeline: List[MaybeSayer] = List(FunnyPolice, PeaceKeeper, Monologues, CopyCat, HighFiver)
 
-  val ILISUrl = """(https?://(?:www\.)?(?:iltalehti|iltasanomat)\.fi/.*\d{8,}.*\.s?html.*)""".r
+  val ILISUrl = """(.*(?:iltalehti|iltasanomat)\.fi/.*\d{8,}.*\.s?html.*)""".r
+  val BBCUrl = """(.*bbc\.com/.+-\d{6,}$)""".r
   val YoutubeUrl = """(https?://(?:m\.|www\.)?(?:youtube\.com|youtu\.be)/.+)""".r
   val FacebookPhotoUrl = """(https?://www\.facebook\.com/photo.php.+)""".r
-  val TwitterUrl = """https?://twitter.com/\w+/status/(\d+).*""".r
+  val TwitterUrl = """.*twitter\.com/\w+/status/(\d+).*""".r
   val ImdbUrl = """.*imdb\.com/title/(tt\d+).*""".r
   val NytUrl = """(.*nyt\.fi/a\d{10,}$)""".r
   val ImgurUrl = """(.*imgur\.com/.*)""".r
