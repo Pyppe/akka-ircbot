@@ -9,7 +9,7 @@ object IrcBotBuild extends Build {
   lazy val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := "fi.pyppe.ircbot",
     version      := "0.1-SNAPSHOT",
-    scalaVersion := "2.10.2",
+    scalaVersion := "2.10.4",
     exportJars   := true
     //offline := true
   )
