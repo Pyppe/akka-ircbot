@@ -58,6 +58,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
             case ILISUrl(url) => sayTitle(m.channel, url)
             case BBCUrl(url) => sayTitle(m.channel, url)
             case NytUrl(url) => sayTitle(m.channel, url)
+            case HsUrl(url) => sayTitle(m.channel, url)
             case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(Youtube.parsePage)
             case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map(say)
             case TwitterUrl(status) => Tweets.statusText(status.toLong).map(say)
@@ -139,6 +140,7 @@ object SlaveWorker {
   val FacebookPhotoUrl = """(https?://www\.facebook\.com/photo.php.+)""".r
   val TwitterUrl = """.*twitter\.com/\w+/status/(\d+).*""".r
   val ImdbUrl = """.*imdb\.com/title/(tt\d+).*""".r
+  val HsUrl = """(.*hs.fi/[a-z]+/a\d+)""".r
   val NytUrl = """(.*nyt\.fi/a\d{10,}$)""".r
   val ImgurUrl = """(.*imgur\.com/.*)""".r
   val GistUrl = """(?:.*gist\.github\.com/).*/(\w+)""".r
