@@ -140,7 +140,7 @@ object SlaveWorker {
   val FacebookPhotoUrl = """(https?://www\.facebook\.com/photo.php.+)""".r
   val TwitterUrl = """.*twitter\.com/\w+/status/(\d+).*""".r
   val ImdbUrl = """.*imdb\.com/title/(tt\d+).*""".r
-  val HsUrl = """(.*hs.fi/[a-z]+/a\d+)""".r
+  val HsUrl = """(.*hs.fi/[a-z]+/a\d+(?:\?.*)?)""".r
   val NytUrl = """(.*nyt\.fi/a\d{10,}$)""".r
   val ImgurUrl = """(.*imgur\.com/.*)""".r
   val GistUrl = """(?:.*gist\.github\.com/).*/(\w+)""".r
