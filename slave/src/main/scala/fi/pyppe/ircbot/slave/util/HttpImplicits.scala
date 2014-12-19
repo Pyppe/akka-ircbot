@@ -8,10 +8,12 @@ object HttpImplicits {
   implicit class RequestExtras(req: Req) {
     def postJSON(js: JValue) = postJSONString(compact(js))
 
-    def postJSONString(str: String) =
+    def postJSONString(str: String) = {
+      println(str)
       req.POST.
         setBody(str).
-        setHeader("Content-Type", "application/json")
+        setHeader("Content-Type", "application/json; charset=utf-8")
+    }
   }
 
 

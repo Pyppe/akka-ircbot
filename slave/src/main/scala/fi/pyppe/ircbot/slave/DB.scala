@@ -40,17 +40,20 @@ object DB extends JsonSupport with LoggerSupport {
   val trackedChannel: Option[String] = conf.map(_.trackedChannel)
 
 
-  def index(m: Message, links: List[String]): Unit = {
-    conf.foreach { conf =>
+  def index(m: Message, links: List[String]): Future[Unit] = {
+    conf.map { conf =>
       val message = toJSON(IndexedMessage(m, links))
-      // TODO: Do we need to specify the content-type ?
       val future =
-        Http(url(conf.searchUrl).postJSON(message)).
-          filter(_.getStatusCode == 200)
+        Http(url(conf.indexUrl).postJSON(message)).map { r =>
+          val sc = r.getStatusCode
+          require(sc == 200 || sc == 201, s"Invalid status-code: $sc")
+          ()
+        }
       future.onFailure {
         case t: Throwable => logger.error(s"Error indexing $m", t)
       }
-    }
+      future
+    }.getOrElse(Future.successful())
   }
 
   case class TopTalkers(total: Int, talkers: List[Talker])
@@ -113,6 +116,14 @@ object DB extends JsonSupport with LoggerSupport {
     val talkers = topTalkers.talkers.map(t => s"${t.nick}: ${formatNum(t.count)} ${dailyAvg(t.count)}").mkString(", ")
     val suffix = s"Yhteensä ${formatNum(topTalkers.total)} viestiä ${dailyAvg(topTalkers.total)}"
     List(talkers, "|", suffix).mkString(" ")
+  }
+
+  // runMain fi.pyppe.ircbot.slave.DB
+  def main(args: Array[String]) {
+    import scala.concurrent.Await
+    import scala.concurrent.duration._
+    val m = Message(DateTime.now, "testing", "Tester", "tester", "localhost", "äö")
+    Await.result(index(m, Nil), 5.seconds)
   }
 
   private val nf = {
