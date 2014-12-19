@@ -9,8 +9,8 @@ trait JsonSupport {
 
   implicit val formats = DefaultFormats + DateTimeMillisSerializer
 
-  def toJSONString(a: Any): String =
-    compact(Extraction.decompose(a))
+  def toJSONString(a: Any): String = compact(Extraction.decompose(a))
+  def toJSON(a: Any): JValue = Extraction.decompose(a)
 
   def parseJSON(str: String): JValue = parse(str)
 

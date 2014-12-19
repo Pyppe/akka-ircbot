@@ -5,6 +5,7 @@ import fi.pyppe.ircbot.LoggerSupport
 
 object Linx extends LoggerSupport with JsonSupport {
   import dispatch._, Defaults._
+  import util.HttpImplicits._
 
   private case class LinxConf(apiEndPoint: String, accessToken: String, trackedChannel: String)
   private case class ReportUrl(Url: String, User: String, Channel: String)
@@ -26,10 +27,11 @@ object Linx extends LoggerSupport with JsonSupport {
     conf.map { linx =>
       if (channel.contains(linx.trackedChannel)) {
         val t = System.currentTimeMillis
-        val post = url(linx.apiEndPoint).POST.
-          setBody(toJSONString(ReportUrl(link, user, linx.trackedChannel))).
-          addHeader("Content-Type", "application/json").
+
+        val post = url(linx.apiEndPoint).
+          postJSON(toJSON(ReportUrl(link, user, linx.trackedChannel))).
           addHeader("Linx-Access-Token", linx.accessToken)
+
         Http(post).map { r =>
           logger.debug(s"Got HTTP ${r.getStatusCode} from ${linx.apiEndPoint} in ${System.currentTimeMillis - t} ms")
         }

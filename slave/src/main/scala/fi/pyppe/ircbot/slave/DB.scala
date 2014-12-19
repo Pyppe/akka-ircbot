@@ -5,16 +5,6 @@ import fi.pyppe.ircbot.event.Message
 
 import com.typesafe.config.ConfigFactory
 import org.joda.time.{DateTime, Period, PeriodType, ReadablePartial}
-import scala.concurrent.Future
-import scala.util.Try
-import scala.util.control.NonFatal
-import org.elasticsearch.common.settings.ImmutableSettings
-import org.elasticsearch.client.transport.TransportClient
-import org.elasticsearch.common.transport.InetSocketTransportAddress
-import org.elasticsearch.action.index.IndexRequest
-import org.elasticsearch.client.Requests
-import org.elasticsearch.index.query.QueryBuilders._
-import org.elasticsearch.action.search.SearchType
 import java.text.NumberFormat
 
 case class IndexedMessage(time: DateTime, nickname: String, username: String, text: String, links: List[String], linkCount: Int)
@@ -24,23 +14,21 @@ object IndexedMessage {
 }
 
 object DB extends JsonSupport with LoggerSupport {
+  import dispatch._, Defaults._
+  import util.HttpImplicits._
+
   private val Index = "ircbot"
   private val Type = "message"
 
-  case class Conf(hostname: String, httpPort: Int, tcpPort: Int, clusterName: Option[String], trackedChannel: String) {
-    def searchUrl: String = s"http://$hostname:$httpPort/$Index/_search"
+  case class Conf(baseUrl: String, trackedChannel: String) {
+    val indexUrl: String = s"$baseUrl/$Index/$Type"
+    val searchUrl: String = s"$indexUrl/_search"
   }
 
   val conf: Option[Conf] = {
     val conf = ConfigFactory.load("mauno.conf")
     try {
-      val clusterName =
-        if (conf.hasPath("elasticsearch.clusterName")) Some(conf.getString("elasticsearch.clusterName"))
-        else None
-      Some(Conf(conf.getString("elasticsearch.host"),
-                conf.getString("elasticsearch.httpPort").toInt,
-                conf.getString("elasticsearch.tcpPort").toInt,
-                clusterName,
+      Some(Conf(conf.getString("elasticsearch.url"),
                 conf.getString("elasticsearch.trackedChannel")))
     } catch {
       case e: Exception =>
@@ -51,26 +39,18 @@ object DB extends JsonSupport with LoggerSupport {
   val isEnabled = conf.isDefined
   val trackedChannel: Option[String] = conf.map(_.trackedChannel)
 
-  private lazy val client: Option[TransportClient] = conf.map { conf =>
-    val settings = ImmutableSettings.settingsBuilder()
-    conf.clusterName.foreach( settings.put("cluster.name", _) )
-    val client = new TransportClient(settings)
-    client.addTransportAddress(new InetSocketTransportAddress(conf.hostname, conf.tcpPort))
-    client
-  }
 
-  def index(m: Message, links: List[String]): Unit =
-    withClientAndConf { (client, conf) =>
-      if (m.channel.contains(conf.trackedChannel)) {
-        Try {
-          val indexRequest = new IndexRequest(Index, Type)
-          val data = toJSONString(IndexedMessage(m, links))
-          indexRequest.source(data)
-          client.index(indexRequest)
-        }.recover {
-          case NonFatal(e) => logger.error(s"Error indexing $m", e)
-        }
+  def index(m: Message, links: List[String]): Unit = {
+    conf.foreach { conf =>
+      val message = toJSON(IndexedMessage(m, links))
+      // TODO: Do we need to specify the content-type ?
+      val future =
+        Http(url(conf.searchUrl).postJSON(message)).
+          filter(_.getStatusCode == 200)
+      future.onFailure {
+        case t: Throwable => logger.error(s"Error indexing $m", t)
       }
+    }
   }
 
   case class TopTalkers(total: Int, talkers: List[Talker])
@@ -93,7 +73,7 @@ object DB extends JsonSupport with LoggerSupport {
       TopTalkers(total, talkers)
     }
 
-    Http(url(conf.searchUrl).POST.setBody {
+    Http(url(conf.searchUrl).postJSONString(
       s"""
          |{
          |  "size": 1,
@@ -117,7 +97,7 @@ object DB extends JsonSupport with LoggerSupport {
          |  }
          |}
       """.stripMargin.trim
-    }).filter(_.getStatusCode == 200).
+    )).filter(_.getStatusCode == 200).
       map(_.getResponseBody).
       map(parseJSON).
       map(parseFacets)
@@ -134,11 +114,6 @@ object DB extends JsonSupport with LoggerSupport {
     val suffix = s"Yhteensä ${formatNum(topTalkers.total)} viestiä ${dailyAvg(topTalkers.total)}"
     List(talkers, "|", suffix).mkString(" ")
   }
-
-  private def withClientAndConf[T](action: (TransportClient, Conf) => T) =
-    client.map { c =>
-      action(c, conf.get)
-    }
 
   private val nf = {
     val nf = NumberFormat.getInstance(java.util.Locale.forLanguageTag("fi"))
