@@ -22,7 +22,7 @@ object CopyCat extends TimedChannelMaybeSayer {
   }
 
   def tokenize(text: String) =
-    text.replaceAll("""[^\p{L} -]""", "").replaceAll("""[\s\p{Zs}]+""", " ").
+    text.replaceAll("""[^\p{L}0-9 -]""", "").replaceAll("""[\s\p{Zs}]+""", " ").
       trim.toLowerCase.split(' ').sorted.
       map(_.replaceAll("""(\w)\1+""", "$1$1")).
       mkString(" ")

@@ -47,7 +47,6 @@ object DB extends JsonSupport with LoggerSupport {
         Http(url(conf.indexUrl).postJSON(message)).map { r =>
           val sc = r.getStatusCode
           require(sc == 200 || sc == 201, s"Invalid status-code: $sc")
-          ()
         }
       future.onFailure {
         case t: Throwable => logger.error(s"Error indexing $m", t)
