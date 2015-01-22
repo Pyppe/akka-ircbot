@@ -77,7 +77,7 @@ object Dependencies {
     "net.databinder.dispatch" %% "dispatch-core"         % "0.11.2",
     "commons-io"              %  "commons-io"            % "2.4",
     "ca.pjer"                 % "chatter-bot-api"        % "1.3.1",
-    "org.ocpsoft.prettytime"  % "prettytime"             % "3.2.5.Final"
+    "org.ocpsoft.prettytime"  % "prettytime"             % "3.2.7.Final"
   )
 
 
