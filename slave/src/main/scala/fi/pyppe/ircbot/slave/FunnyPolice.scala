@@ -25,7 +25,7 @@ object FunnyPolice extends TimedChannelMaybeSayer {
   private val Start = "(?: |^)"
   private val End = "(?: |$)"
   private val Hahehiho = List("a","e","i","o").map(x => s"[h$x]{3,}").mkString("|")
-  private val Funny = """.*%s([-:D]+|[-:\)]+|[-:P]+|%s|lol[lo]*)%s.*""".format(Start,Hahehiho,End)
+  private val Funny = """.*%s(:[-:DP)]+|%s|lol[lo]*)%s.*""".format(Start,Hahehiho,End)
 
   override def silentPeriod: Duration = Duration.standardHours(1)
 

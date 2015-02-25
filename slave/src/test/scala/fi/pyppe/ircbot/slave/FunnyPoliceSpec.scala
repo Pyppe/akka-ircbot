@@ -7,6 +7,8 @@ class FunnyPoliceSpec extends Specification {
   "FunnyPolice.isFunnyText" should {
     testFunny("Diipa daapa Faufiu", false)
     testFunny(":Df", false)
+    testFunny("( not funny )", false)
+    testFunny(":\\", false)
 
     testFunny(":DD", true)
     testFunny(":)", true)
