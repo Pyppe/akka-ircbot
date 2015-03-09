@@ -14,7 +14,9 @@ object Monologues extends TimedChannelMaybeSayer {
     "aaah... jaksaisin kuunnella sun tarinointia vaikka ikuisesti! Sä oot paras!",
     "ihanku olisin kuullut tän tarinan ennenkin...",
     "kiviäkin kiinnostaa! Tää oli huikee juttu!",
-    "plz blow me. My brain is having an erection!"
+    "plz blow me. My brain is having an erection!",
+    "jatka toki. Ei niin että täällä kenelläkään muulla olis mitään järkevää sanottavaa...",
+    "*klapklap* Huikeee juttu! Voiko tästä paremmaksi enää mennä??"
   )
 
   override def silentPeriod: Duration = Duration.standardHours(3)
