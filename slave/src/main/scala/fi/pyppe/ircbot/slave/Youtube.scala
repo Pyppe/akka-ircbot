@@ -20,7 +20,7 @@ object Youtube {
     nf.setGroupingUsed(true)
 
     def number(css: String) =
-      Try(nf.format(doc.select(css).text.replaceAll("[^\\d]", "").toLong)).getOrElse("?")
+      Try(nf.format(doc.select(css).first.text.replaceAll("[^\\d]", "").toLong)).getOrElse("?")
 
     val title = doc.select("#watch-headline-title").text
     val durationText = doc.select("meta[itemprop=duration]").attr("content") // PT4M8S
