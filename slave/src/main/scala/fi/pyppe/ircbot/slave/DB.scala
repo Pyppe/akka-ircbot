@@ -47,16 +47,21 @@ object DB extends JsonSupport with LoggerSupport {
 
   def index(m: Message, links: List[String]): Future[Unit] = {
     conf.map { conf =>
-      val message = toJSON(IndexedMessage(m, links))
-      val future =
-        Http(url(conf.indexUrl).postJSON(message)).map { r =>
-          val sc = r.getStatusCode
-          require(sc == 200 || sc == 201, s"Invalid status-code: $sc")
+      if (m.channel.contains(trackedChannel.get)) {
+        val message = toJSON(IndexedMessage(m, links))
+        val future =
+          Http(url(conf.indexUrl).postJSON(message)).map { r =>
+            val sc = r.getStatusCode
+            require(sc == 200 || sc == 201, s"Invalid status-code: $sc")
+          }
+        future.onFailure {
+          case t: Throwable => logger.error(s"Error indexing $m", t)
         }
-      future.onFailure {
-        case t: Throwable => logger.error(s"Error indexing $m", t)
+        future
+      } else {
+        logger.debug(s"Not saving $m to DB")
+        Future.successful()
       }
-      future
     }.getOrElse(Future.successful())
   }
 
