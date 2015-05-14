@@ -18,6 +18,25 @@ trait JsonSupport {
 
 }
 
+object JsonSupport {
+
+  object Implicits {
+    implicit class JsonInterpolation(val sc: StringContext) extends AnyVal {
+      def json(args: JValue*): String = {
+        val strings = sc.parts.iterator
+        val expressions = args.iterator
+        val buf = new StringBuffer(strings.next)
+        while (strings.hasNext) {
+          buf append compact(expressions.next)
+          buf append strings.next
+        }
+        buf.toString
+      }
+    }
+  }
+
+}
+
 case object DateTimeMillisSerializer extends CustomSerializer[DateTime](format => (
   {
     case JInt(t) => new DateTime(t.longValue)

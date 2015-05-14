@@ -1,6 +1,7 @@
 package fi.pyppe.ircbot.slave
 
-import fi.pyppe.ircbot.LoggerSupport
+import com.ning.http.client.Response
+import fi.pyppe.ircbot.{CommonConfig, LoggerSupport}
 import fi.pyppe.ircbot.event.Message
 
 import com.typesafe.config.ConfigFactory
@@ -16,6 +17,10 @@ object IndexedMessage {
 object DB extends JsonSupport with LoggerSupport {
   import dispatch._, Defaults._
   import util.HttpImplicits._
+  import org.json4s._
+  import org.json4s.JsonDSL._
+  import org.json4s.jackson.JsonMethods._
+  import JsonSupport.Implicits._
 
   private val Index = "ircbot"
   private val Type = "message"
@@ -58,10 +63,69 @@ object DB extends JsonSupport with LoggerSupport {
   case class TopTalkers(total: Int, talkers: List[Talker])
   case class Talker(nick: String, count: Int)
 
-  def topTalkers(from: DateTime, to: DateTime): Future[TopTalkers] = conf.map { conf =>
-    import dispatch._, Defaults._
-    import org.json4s._
+  private def okResponseAsJson(r: Response): JValue = {
+    val rc = r.getStatusCode
+    require(rc == 200 || rc == 201, s"Invalid response $rc from ${r.getUri}")
+    parseJSON(r.getResponseBody)
+  }
 
+  private def randomMessageRequest(message: Message): JValue = {
+
+    def term(t: String) = t.toLowerCase.replaceAll("""[^\p{L}\p{N}]""","")
+
+    val botName = CommonConfig.botName.toLowerCase
+
+    val reference: List[String] = {
+      message.text.toLowerCase.split(' ').filterNot(_.contains(botName)).map(term).
+        filterNot(_.isEmpty).toList
+    }
+
+    val should: JArray = {
+      val from = parse(json"""{"term": { "text": ${term(message.nickname)} }}""")
+      val jsTerms = reference.map(t => parse(json"""{"term": {"text": $t}}"""))
+      JArray(from :: jsTerms)
+    }
+
+    val request =
+      json"""
+        |{
+        |  "size": 1,
+        |  "query": {
+        |    "function_score": {
+        |      "query": {
+        |        "bool": {
+        |          "must_not": [
+        |            {"term": {"nickname": $botName}}
+        |          ],
+        |          "should": $should,
+        |          "minimum_should_match": 0
+        |        }
+        |      },
+        |      "random_score": {"seed": ${java.util.UUID.randomUUID.toString}}
+        |    }
+        |  }
+        |}
+      """.stripMargin.trim
+
+    parse(request)
+  }
+
+  def randomMessage(m: Message): Future[(String, IndexedMessage)] = conf.map { conf =>
+    Http(url(conf.searchUrl).postJSON(randomMessageRequest(m))).
+      map(okResponseAsJson).
+      map { js =>
+        (js \ "hits" \ "hits") match {
+          case JArray(List(hit)) =>
+            val id = (hit \ "_id").extract[String]
+            val msg = (hit \ "_source").extract[IndexedMessage]
+            val score = (hit \ "_score").extract[Double]
+            logger.info(s"Found $msg [score = $score, id = $id] for <${m.nickname}> ${m.text}")
+            id -> (hit \ "_source").extract[IndexedMessage]
+        }
+      }
+  } getOrElse Future.failed(new Exception("No configuration"))
+
+  def topTalkers(from: DateTime, to: DateTime): Future[TopTalkers] = conf.map { conf =>
     def parseFacets(json: JValue) = {
       val tags = (json \ "facets" \ "tags")
       val total = (tags \ "total").extract[Int]
@@ -99,11 +163,7 @@ object DB extends JsonSupport with LoggerSupport {
          |  }
          |}
       """.stripMargin.trim
-    )).filter(_.getStatusCode == 200).
-      map(_.getResponseBody).
-      map(parseJSON).
-      map(parseFacets)
-      //map(jsonPrettyString(_))
+    )).map(okResponseAsJson).map(parseFacets)
 
   }.getOrElse {
     Future.failed(new Exception("No configuration"))
@@ -121,8 +181,14 @@ object DB extends JsonSupport with LoggerSupport {
   def main(args: Array[String]) {
     import scala.concurrent.Await
     import scala.concurrent.duration._
-    val m = Message(DateTime.now, "testing", "Tester", "tester", "localhost", "äö")
+
+    val m = Message(DateTime.now, "testing", "Tester", "tester", "localhost", args.mkString(" "))
+    /*
     Await.result(index(m, Nil), 5.seconds)
+    */
+    println(s"TEXT: <${m.text}>")
+
+    println(pretty(randomMessageRequest(m)))
   }
 
   private val nf = {
