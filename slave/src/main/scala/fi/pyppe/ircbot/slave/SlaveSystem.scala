@@ -69,19 +69,19 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
         case _ =>
 
           urls.collect {
+            /*
             case ILISUrl(url) => sayTitle(m.channel, url)
             case BBCUrl(url) => sayTitle(m.channel, url)
             case NytUrl(url) => sayTitle(m.channel, url)
             case HsUrl(url) => sayTitle(m.channel, url)
+            */
             case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(Youtube.parsePage)
             case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map(say)
             case TwitterUrl(status) => Tweets.statusText(status.toLong).map(say)
             case ImdbUrl(id) => IMDB.movie(id).map(_.map(say))
             case ImgurUrl(url) => Imgur.publicGet(url).map(say)
             case GistUrl(id) => Github.gist(id).map(say)
-            case url =>
-              logger.debug(s"Not interested in $url")
-              Future.successful()
+            case url => PageTitleService.findPageTitle(url).map(_.map(say))
           }.foreach(_.onFailure {
             case NonFatal(e) =>
               logger.error(s"Error handling url", e)

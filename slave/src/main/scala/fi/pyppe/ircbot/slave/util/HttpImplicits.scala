@@ -9,7 +9,6 @@ object HttpImplicits {
     def postJSON(js: JValue) = postJSONString(compact(js))
 
     def postJSONString(str: String) = {
-      println(str)
       req.POST.
         setBody(str).
         setHeader("Content-Type", "application/json; charset=utf-8")
