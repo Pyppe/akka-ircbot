@@ -26,8 +26,8 @@ object Youtube {
     val durationText = doc.select("meta[itemprop=duration]").attr("content") // PT4M8S
     val duration = Try(hmsFormatter.print(Period.parse(durationText))).getOrElse(durationText)
     val views = number(".watch-view-count")
-    val likes = number("#watch-like")
-    val dislikes = number("#watch-dislike")
+    val likes = number(".like-button-renderer-like-button-unclicked")
+    val dislikes = number(".like-button-renderer-dislike-button-unclicked")
 
     s"Youtube: $title [$duration] ($views views, $likes likes, $dislikes dislikes)"
   }
