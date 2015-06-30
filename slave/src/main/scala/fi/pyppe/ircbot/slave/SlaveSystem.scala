@@ -5,7 +5,6 @@ import scala.concurrent.duration._
 import fi.pyppe.ircbot.AkkaUtil.remoteActorSystemConfiguration
 import fi.pyppe.ircbot.{CommonConfig, LoggerSupport}
 import org.joda.time.DateTime
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document

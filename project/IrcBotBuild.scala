@@ -6,10 +6,10 @@ object IrcBotBuild extends Build {
 
   import Dependencies._
 
-  lazy val buildSettings = Defaults.defaultSettings ++ Seq(
+  lazy val buildSettings = Seq(
     organization := "fi.pyppe.ircbot",
     version      := "0.1-SNAPSHOT",
-    scalaVersion := "2.10.4",
+    scalaVersion := "2.11.7",
     exportJars   := true
     //offline := true
   )
@@ -52,17 +52,17 @@ object Dependencies {
   private val scalaLangExclusions = ExclusionRule(organization = "org.scala-lang")
 
   val commonLibs = Seq(
-    "com.typesafe.akka"  %% "akka-actor"           % "2.2.1",
-    "com.typesafe.akka"  %% "akka-remote"          % "2.2.1",
-    "com.typesafe.akka"  %% "akka-slf4j"           % "2.2.1",
+    "com.typesafe.akka"          %% "akka-actor"           % "2.3.11",
+    "com.typesafe.akka"          %% "akka-remote"          % "2.3.11",
+    "com.typesafe.akka"          %% "akka-slf4j"           % "2.3.11",
 
-    "com.typesafe"       %% "scalalogging-slf4j"   % "1.0.1" excludeAll(scalaLangExclusions),
-    "com.typesafe"       %  "config"               % "1.0.2",
-    "org.joda"           %  "joda-convert"         % "1.5",
-    "joda-time"          %  "joda-time"            % "2.3",
-    "ch.qos.logback"     %  "logback-classic"      % "1.0.13",
+    "com.typesafe.scala-logging" %% "scala-logging"        % "3.1.0" excludeAll(scalaLangExclusions),
+    "com.typesafe"               %  "config"               % "1.3.0",
+    "org.joda"                   %  "joda-convert"         % "1.7",
+    "joda-time"                  %  "joda-time"            % "2.8.1",
+    "ch.qos.logback"             %  "logback-classic"      % "1.1.3",
 
-    "org.specs2"         %% "specs2"               % "2.3.12" % "test"
+    "org.specs2"                 %% "specs2"               % "2.3.12" % "test"
   )
 
   val masterLibs = Seq(
@@ -76,8 +76,8 @@ object Dependencies {
     "org.twitter4j"           %  "twitter4j-core"        % "3.0.5",
     "net.databinder.dispatch" %% "dispatch-core"         % "0.11.2",
     "commons-io"              %  "commons-io"            % "2.4",
-    "ca.pjer"                 % "chatter-bot-api"        % "1.3.1",
-    "org.ocpsoft.prettytime"  % "prettytime"             % "3.2.7.Final"
+    "ca.pjer"                 %  "chatter-bot-api"       % "1.3.1",
+    "org.ocpsoft.prettytime"  %  "prettytime"            % "3.2.7.Final"
   )
 
 
