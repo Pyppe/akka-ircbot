@@ -18,10 +18,14 @@ object SmartBot extends LoggerSupport {
     "Katso peiliin, pelle!",
     "Talk to the hand",
     "That's the stupidest thing i ever heard",
-    "Tosta tulikin mieleen... Onko normaalia, jos huomaa haaveilevansa haaveista?",
+    "lol, haavi auki!",
     "url or didn't happen",
     "Ooooh. Ihanku He-Man! :D",
-    "Venaas ku pyllistän, niin saat paremman kulman"
+    "Venaas ku pyllistän, niin saat paremman kulman",
+    "*boner alert*",
+    "Onko tämä empiirinen havainto?",
+    "Totta turiset!",
+    "... oikeesti?"
   )
 
   def think(m: String)(implicit ec: ExecutionContext): Future[String] = {
