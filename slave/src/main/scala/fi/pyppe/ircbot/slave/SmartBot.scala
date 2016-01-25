@@ -4,7 +4,7 @@ import fi.pyppe.ircbot.LoggerSupport
 import org.jsoup.Jsoup
 import dispatch._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Random
+import scala.util.{Random, Try}
 
 object SmartBot extends LoggerSupport {
 
@@ -46,9 +46,15 @@ object SmartBot extends LoggerSupport {
     import scala.collection.JavaConversions._
 
     def findMessageThread(page: String): Future[String] = {
-      Http(url(page).GET).map(_.getResponseBody).
+      Http(url(page).setFollowRedirects(true).GET).map(_.getResponseBody).
         map(body => Jsoup.parse(body, page)).map { doc =>
-          val links = doc.select(".postTitle[href]").map(_.attr("abs:href")).toList
+          val links = doc.select(".title a[href]").flatMap { el =>
+            Try {
+              val link = el.attr("abs:href").replaceAll("\\?changed=\\d+$", "")
+              require(link.contains("/keskustelu/"))
+              link
+            }.toOption
+          }.toList
           require(links.nonEmpty, s"No links found from $page")
           val link = links((math.random * links.size).toInt)
           s"Tsekkaa tää ajatuksen kanssa: $link, OK?"
@@ -60,12 +66,13 @@ object SmartBot extends LoggerSupport {
     }
 
     Random.nextInt(3) match {
-      case 0 => findMessageThread("http://www.vauva.fi/keskustelu/1/alue/seksi")
-      case 1 => findMessageThread("http://www.vauva.fi/keskustelu/2/alue/aihe_vapaa")
-      case _ => findMessageThread("http://www.vauva.fi/keskustelu/103/alue/aidit_ja_isat")
+      case 0 => findMessageThread("http://www.vauva.fi/keskustelu/alue/seksi")
+      case 1 => findMessageThread("http://www.vauva.fi/keskustelu/alue/aihe_vapaa")
+      case _ => findMessageThread("http://www.vauva.fi/keskustelu/alue/perhe_ja_arki")
     }
   }
 
+  // slave/runMain fi.pyppe.ircbot.slave.SmartBot
   def main(args: Array[String]) {
     import scala.concurrent.Await
     import scala.concurrent.duration._
