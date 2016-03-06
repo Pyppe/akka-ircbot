@@ -44,63 +44,20 @@ object DB extends JsonSupport with LoggerSupport {
   val isEnabled = conf.isDefined
   val trackedChannel: Option[String] = conf.map(_.trackedChannel)
 
-  private val ProxiedMessage = s"""<(\\S+)> *(.*)""".r
-  private def effectiveMessage(m: Message): Option[Message] = {
-
-    def effectiveNickName(nick: String) = nick.toLowerCase match {
-      case "juhahe"                  => "juh"
-      case "henri"                   => "mnd"
-      case "teijo"                   => "aroppuu"
-      case x if x.startsWith("tero") => "tero"
-      case x if x.startsWith("aki")  => "huamn"
-      case _ => nick
-    }
-
-    val effective: Option[Message] = {
-      if (m.nickname.toLowerCase.contains("slack")) {
-        m.text match {
-          case ProxiedMessage(nick, text) =>
-            if (nick.toLowerCase.contains("slack"))
-              None
-            else
-              Some(m.copy(nickname = nick, text = text))
-          case x =>
-            Some(m)
-        }
-      } else {
-        Some(m)
-      }
-    }.map(m => m.copy(nickname = effectiveNickName(m.nickname)))
-
-    if (effective != Some(m)) {
-      effective match {
-        case Some(effective) =>
-          logger.info(s"Altered message from ${m.nickname} => <${effective.nickname}> ${effective.text}")
-        case None =>
-          logger.info(s"Skipping: <${m.nickname}> ${m.text}")
-      }
-    }
-    effective
-  }
-
 
   def index(m: Message, links: List[String]): Future[Unit] = {
     conf.map { conf =>
       if (m.channel.contains(trackedChannel.get)) {
-        effectiveMessage(m) map { m =>
-          val message = toJSON(IndexedMessage(m, links))
-          val future =
-            Http(url(conf.indexUrl).postJSON(message)).map { r =>
-              val sc = r.getStatusCode
-              require(sc == 200 || sc == 201, s"Invalid status-code: $sc")
-            }
-          future.onFailure {
-            case t: Throwable => logger.error(s"Error indexing $m", t)
+        val message = toJSON(IndexedMessage(m, links))
+        val future =
+          Http(url(conf.indexUrl).postJSON(message)).map { r =>
+            val sc = r.getStatusCode
+            require(sc == 200 || sc == 201, s"Invalid status-code: $sc")
           }
-          future
-        } getOrElse {
-          Future.successful()
+        future.onFailure {
+          case t: Throwable => logger.error(s"Error indexing $m", t)
         }
+        future
 
       } else {
         logger.debug(s"Not saving $m to DB")

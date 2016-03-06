@@ -40,59 +40,95 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
   implicit val ec = context.dispatcher
   implicit val master = context.actorSelection(masterLocation)
 
+  private val ProxiedMessage = s"""<(\\S+)> *(.*)""".r
+  private def effectiveMessage(m: Message): Option[Message] = {
+
+    def effectiveNickName(nick: String) = nick.toLowerCase match {
+      case "juhahe"                  => "juh"
+      case "henri"                   => "mnd"
+      case "teijo"                   => "aroppuu"
+      case x if x.startsWith("tero") => "tero"
+      case x if x.startsWith("aki")  => "huamn"
+      case _ => nick
+    }
+
+    val effective: Option[Message] = {
+      if (m.nickname.toLowerCase.contains("slack")) {
+        m.text match {
+          case ProxiedMessage(nick, text) =>
+            if (nick.toLowerCase.contains("slack"))
+              None
+            else
+              Some(m.copy(nickname = nick, text = text))
+          case x =>
+            Some(m)
+        }
+      } else {
+        Some(m)
+      }
+    }.map(m => m.copy(nickname = effectiveNickName(m.nickname)))
+
+    if (effective != Some(m)) {
+      effective match {
+        case Some(effective) =>
+          logger.info(s"Altered message from ${m.nickname} => <${effective.nickname}> ${effective.text}")
+        case None =>
+          logger.info(s"Skipping: <${m.nickname}> ${m.text}")
+      }
+    }
+    effective
+  }
+
   def receive = {
     case m: Message =>
-      def say(text: String) = sayToChannel(text, m.channel)
-      val t = System.currentTimeMillis
-      val urls = parseUrls(m.text)
-      m.text match {
-        case Rain(plural, q) => OpenWeatherMap.queryWeather(q, plural == "t").collect {
-          case Some(text) => sayToChannel(text, m.channel)
-        }
-        case MessageToBot(message) =>
-          //BotWithinBot.think(message).map(t => say(s"${m.nickname}: $t"))
+      effectiveMessage(m).map { m =>
 
-          def smartBotSays(): Unit = SmartBot.think(message).map(t => say(s"${m.nickname}: $t"))
-
-          if (message.contains("quote")) {
-            val queryMessage = m.copy(text = message.replace("quote", ""))
-            DB.randomMessage(queryMessage).map { case(id, oldMessage) =>
-              say(s"""${m.nickname}: Kuten ${oldMessage.nickname} muotoili asian: ${oldMessage.text} (${publicLink(id)})""".trim)
-            } recover {
-              case err: Throwable =>
-                logger.warn(s"No response for $queryMessage")
-                smartBotSays()
-            }
-          } else smartBotSays()
-
-        case _ =>
-
-          urls.collect {
-            /*
-            case ILISUrl(url) => sayTitle(m.channel, url)
-            case BBCUrl(url) => sayTitle(m.channel, url)
-            case NytUrl(url) => sayTitle(m.channel, url)
-            case HsUrl(url) => sayTitle(m.channel, url)
-            */
-            case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(Youtube.parsePage)
-            case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map(say)
-            case TwitterUrl(status) => Tweets.statusText(status.toLong).map(say)
-            case ImdbUrl(id) => IMDB.movie(id).map(_.map(say))
-            case ImgurUrl(url) => Imgur.publicGet(url).map(say)
-            case GistUrl(id) => Github.gist(id).map(say)
-            case url => PageTitleService.findPageTitle(url).map(_.map(say))
-          }.foreach(_.onFailure {
-            case NonFatal(e) =>
-              logger.error(s"Error handling url", e)
-          })
-          urls.foreach { u =>
-            Linx.postLink(u, m.nickname, m.channel)
-            OldLinkPolice.reactOnLink(m, u).foreach(_.foreach(say))
+        def say(text: String) = sayToChannel(text, m.channel)
+        val t = System.currentTimeMillis
+        val urls = parseUrls(m.text)
+        m.text match {
+          case Rain(plural, q) => OpenWeatherMap.queryWeather(q, plural == "t").collect {
+            case Some(text) => sayToChannel(text, m.channel)
           }
-          pipelineReact(m)
+          case MessageToBot(message) =>
+            //BotWithinBot.think(message).map(t => say(s"${m.nickname}: $t"))
+
+            def smartBotSays(): Unit = SmartBot.think(message).map(t => say(s"${m.nickname}: $t"))
+
+            if (message.contains("quote")) {
+              val queryMessage = m.copy(text = message.replace("quote", ""))
+              DB.randomMessage(queryMessage).map { case (id, oldMessage) =>
+                say(s"""${m.nickname}: Kuten ${oldMessage.nickname} muotoili asian: ${oldMessage.text} (${publicLink(id)})""".trim)
+              } recover {
+                case err: Throwable =>
+                  logger.warn(s"No response for $queryMessage")
+                  smartBotSays()
+              }
+            } else smartBotSays()
+
+          case _ =>
+
+            urls.collect {
+              case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(Youtube.parsePage)
+              case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map(say)
+              case TwitterUrl(status) => Tweets.statusText(status.toLong).map(say)
+              case ImdbUrl(id) => IMDB.movie(id).map(_.map(say))
+              case ImgurUrl(url) => Imgur.publicGet(url).map(say)
+              case GistUrl(id) => Github.gist(id).map(say)
+              case url => PageTitleService.findPageTitle(url).map(_.map(say))
+            }.foreach(_.onFailure {
+              case NonFatal(e) =>
+                logger.error(s"Error handling url", e)
+            })
+            urls.foreach { u =>
+              Linx.postLink(u, m.nickname, m.channel)
+              OldLinkPolice.reactOnLink(m, u).foreach(_.foreach(say))
+            }
+            pipelineReact(m)
+        }
+        DB.index(m, urls)
+        logger.debug(s"Processed [[${m.nickname}: ${m.text}]] in ${System.currentTimeMillis - t} ms")
       }
-      DB.index(m, urls)
-      logger.debug(s"Processed [[${m.nickname}: ${m.text}]] in ${System.currentTimeMillis - t} ms")
 
     case Rss(entries) =>
       entries.foreach { rss =>
