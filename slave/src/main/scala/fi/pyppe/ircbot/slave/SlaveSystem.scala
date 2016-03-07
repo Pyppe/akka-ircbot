@@ -52,11 +52,16 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
       case _ => nick
     }
 
+    def isSlackProxyNick(nick: String) = {
+      val n = nick.toLowerCase
+      n == "hv" || n.contains("slack")
+    }
+
     val effective: Option[Message] = {
-      if (m.nickname.toLowerCase.contains("slack")) {
+      if (isSlackProxyNick(m.nickname)) {
         m.text match {
           case ProxiedMessage(nick, text) =>
-            if (nick.toLowerCase.contains("slack"))
+            if (isSlackProxyNick(nick))
               None
             else
               Some(m.copy(nickname = nick, text = text))
