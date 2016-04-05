@@ -44,11 +44,12 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
   private def effectiveMessage(m: Message): Option[Message] = {
 
     def effectiveNickName(nick: String) = nick.toLowerCase match {
-      case "juhahe"                  => "juh"
-      case "henri"                   => "mnd"
-      case "teijo"                   => "aroppuu"
-      case x if x.startsWith("tero") => "tero"
-      case x if x.startsWith("aki")  => "huamn"
+      case "juhahe"                   => "juh"
+      case "henri"                    => "mnd"
+      case "teijo"                    => "aroppuu"
+      case x if x.startsWith("tero")  => "tero"
+      case x if x.startsWith("aki")   => "huamn"
+      case x if x.startsWith("pyppe") => "pyppe"
       case _ => nick
     }
 
