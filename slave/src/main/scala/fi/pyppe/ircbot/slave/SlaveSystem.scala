@@ -115,7 +115,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
           case _ =>
 
             urls.collect {
-              case YoutubeUrl(url) => reactWithShortUrl(m.channel, url)(Youtube.parsePage)
+              case YoutubeUrl(url) => Youtube.parseUrl(url).map(say)
               case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map(say)
               case TwitterUrl(status) => Tweets.statusText(status.toLong).map(say)
               case ImdbUrl(id) => IMDB.movie(id).map(_.map(say))
@@ -148,15 +148,14 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
   def pipelineReact(m: Message) =
     Pipeline.foreach(_.react(m).map(t => sayToChannel(t, m.channel)))
 
-  def sayTitle(channel: String, url: String) =
-    reactWithShortUrl(channel, url)(_.select("head title").text)
-
+  /*
   def reactWithShortUrl(channel: String, url: String)(documentParser: (Document => String)) = {
     val docFuture = Future(documentParser(Jsoup.connect(url).get))
     Bitly.shortLink(url) zip docFuture map { case (shortUrl, data) =>
       sayToChannel(s"$shortUrl $data", channel)
     }
   }
+  */
 
   private def sayToChannels(longMessage: String) = {
     val msg = safeMessageLength(longMessage)

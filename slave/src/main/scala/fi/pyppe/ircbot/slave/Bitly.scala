@@ -30,6 +30,6 @@ object Bitly extends LoggerSupport with JsonSupport {
       Http(req).map { response =>
         (parseJSON(response.getResponseBody) \\ "url").extract[String]
       }
-    } getOrElse Future.apply(link)
+    } getOrElse Future.successful(link)
 
 }

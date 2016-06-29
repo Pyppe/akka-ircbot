@@ -8,8 +8,7 @@ object FacebookPhoto extends LoggerSupport with JsonSupport {
 
   def parse(photoLink: String) = for {
     (image, caption, author) <- parsePhotoData(photoLink)
-    shortLink <- Bitly.shortLink(image)
-  } yield s"$shortLink $author: $caption"
+  } yield s"$author: $caption"
 
   private def parsePhotoData(photoLink: String) = Future.apply {
     val d = Jsoup.connect(photoLink).get

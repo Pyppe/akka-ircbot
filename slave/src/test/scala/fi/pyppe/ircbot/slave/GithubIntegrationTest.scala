@@ -17,7 +17,7 @@ class GithubIntegrationTest extends Specification {
       id === "9446546"
       val message = await(Github.gist(id))
       message.startsWith("Simple scala script for wrapping `transmission-remote`: start-paused-torrent.scala, usage-example.txt") === true
-      message.endsWith("Pyppe (Pyry-Samuli Lahti, Onomatics)") === true
+      message.endsWith("Pyppe (Pyry-Samuli Lahti, TrademarkNow)") === true
     }
   }
 
