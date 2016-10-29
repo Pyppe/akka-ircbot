@@ -29,6 +29,7 @@ object SlaveSystem {
     if (DB.isEnabled) {
       RemoteActorSystem.actorOf(Props(classOf[DBStatsGuy], slave), "dbStatsGuy")
     }
+    RemoteActorSystem.actorOf(Props(classOf[EventActor], slave), "eventActor")
   }
 }
 
