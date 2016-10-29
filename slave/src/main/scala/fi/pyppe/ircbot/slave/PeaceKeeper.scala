@@ -6,7 +6,7 @@ import scala.collection.mutable
 
 object PeaceKeeper extends MaybeSayer {
 
-  private val QuietHours = 10
+  private val QuietHours = 24
   private val previousMessages = mutable.Map[String, DateTime]()
 
   private def replyMessage(nick: String) = {
