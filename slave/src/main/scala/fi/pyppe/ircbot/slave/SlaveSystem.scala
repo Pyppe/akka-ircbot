@@ -117,7 +117,6 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 
             urls.collect {
               case YoutubeUrl(url) => Youtube.parseUrl(url).map(say)
-              case FacebookPhotoUrl(url) => FacebookPhoto.parse(url).map(say)
               case TwitterUrl(status) => Tweets.statusText(status.toLong).map(say)
               case ImdbUrl(id) => IMDB.movie(id).map(_.map(say))
               case ImgurUrl(url) => Imgur.publicGet(url).map(say)
