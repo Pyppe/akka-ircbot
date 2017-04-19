@@ -57,7 +57,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 
     def isSlackProxyNick(nick: String) = {
       val n = nick.toLowerCase
-      n == "hv" || n.contains("slack")
+      n.matches("""hv[\d_]?""") || n.contains("slack")
     }
 
     val effective: Option[Message] = {
