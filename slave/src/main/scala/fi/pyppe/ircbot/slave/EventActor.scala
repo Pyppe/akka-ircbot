@@ -13,7 +13,9 @@ class EventActor(slave: ActorRef) extends Actor with LoggerSupport {
   private val HourToReact = 8
 
   val Birthdays = Map(
+    "10.01." -> "aki",
     "18.01." -> "Pyppe",
+    "08.02." -> "tuoski",
     "17.04." -> "tero",
     "01.10." -> "henri",
     "02.10." -> "holli & mipa",
@@ -23,6 +25,7 @@ class EventActor(slave: ActorRef) extends Actor with LoggerSupport {
 
   val Events = Map(
     "01.01." -> ("Uusi vuosi, uusi kujeet! HUIKEETA!", "newyear"),
+    "01.05." -> ("Hyvää Wappua wässykät!", "party"),
     "06.11." -> ("Hyvää ruotsalaisuuden päivää!", "sweden"),
     "24.12." -> ("Joujou!", "christmas")
   )
