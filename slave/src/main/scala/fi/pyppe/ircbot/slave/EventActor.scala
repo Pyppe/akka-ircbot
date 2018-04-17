@@ -16,7 +16,7 @@ class EventActor(slave: ActorRef) extends Actor with LoggerSupport {
     "10.01." -> "aki",
     "18.01." -> "Pyppe",
     "08.02." -> "tuoski",
-    "17.04." -> "tero",
+    "16.04." -> "tero",
     "01.10." -> "henri",
     "02.10." -> "holli & mipa",
     "11.11." -> "oiva",
