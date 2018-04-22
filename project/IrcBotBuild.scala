@@ -52,9 +52,9 @@ object Dependencies {
   private val scalaLangExclusions = ExclusionRule(organization = "org.scala-lang")
 
   val commonLibs = Seq(
-    "com.typesafe.akka"          %% "akka-actor"           % "2.3.11",
-    "com.typesafe.akka"          %% "akka-remote"          % "2.3.11",
-    "com.typesafe.akka"          %% "akka-slf4j"           % "2.3.11",
+    "com.typesafe.akka"          %% "akka-actor"           % "2.5.11",
+    "com.typesafe.akka"          %% "akka-remote"          % "2.5.11",
+    "com.typesafe.akka"          %% "akka-slf4j"           % "2.5.11",
 
     "com.typesafe.scala-logging" %% "scala-logging"        % "3.1.0" excludeAll(scalaLangExclusions),
     "com.typesafe"               %  "config"               % "1.3.0",
@@ -66,7 +66,7 @@ object Dependencies {
   )
 
   val masterLibs = Seq(
-    "org.pircbotx"       %  "pircbotx"             % "2.0.1"
+    "org.pircbotx"         %  "pircbotx"             % "2.0.1"
   )
 
   val slaveLibs = Seq(
@@ -74,10 +74,11 @@ object Dependencies {
     "org.json4s"              %% "json4s-jackson"        % "3.2.11",
     "org.json4s"              %% "json4s-ext"            % "3.2.11",
     "org.twitter4j"           %  "twitter4j-core"        % "3.0.5",
-    "net.databinder.dispatch" %% "dispatch-core"         % "0.11.2",
+    "net.databinder.dispatch" %% "dispatch-core"         % "0.12.3",
     "commons-io"              %  "commons-io"            % "2.4",
     "ca.pjer"                 %  "chatter-bot-api"       % "1.3.1",
-    "org.ocpsoft.prettytime"  %  "prettytime"            % "3.2.7.Final"
+    "org.ocpsoft.prettytime"  %  "prettytime"            % "3.2.7.Final",
+    "com.github.gilbertw1"    %% "slack-scala-client"    % "0.2.3"
   )
 
 

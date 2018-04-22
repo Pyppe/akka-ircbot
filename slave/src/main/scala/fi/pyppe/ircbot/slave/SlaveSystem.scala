@@ -17,12 +17,13 @@ private case class Rss(entries: Seq[RssEntry])
 case class MessageToMaster(m: String)
 
 object SlaveSystem {
-  def main (args: Array[String]) {
-    import fi.pyppe.ircbot.CommonConfig._
+  import fi.pyppe.ircbot.CommonConfig._
+  val masterLocation = s"akka.tcp://$actorSystemName@$host:$masterPort/user/$masterName"
+  val RemoteActorSystem = ActorSystem(actorSystemName, remoteActorSystemConfiguration(host, slavePort, secureCookie))
 
-    val RemoteActorSystem = ActorSystem(actorSystemName, remoteActorSystemConfiguration(host, slavePort, secureCookie))
-    val masterLocation = s"akka.tcp://$actorSystemName@$host:$masterPort/user/$masterName"
+  def main(args: Array[String]) {
     val slave = RemoteActorSystem.actorOf(Props(classOf[SlaveWorker], masterLocation), slaveName)
+    Slack.registerSlackGateway()
     if (RssChecker.imakesHostOption.isDefined) {
       RemoteActorSystem.actorOf(Props(classOf[RssChecker], slave), "rssChecker")
     }
@@ -135,6 +136,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
         }
         DB.index(m, urls)
         logger.debug(s"Processed [[${m.nickname}: ${m.text}]] in ${System.currentTimeMillis - t} ms")
+        //Slack.sendMessage(m)
       }
 
     case Rss(entries) =>
@@ -159,23 +161,15 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
   */
 
   private def sayToChannels(longMessage: String) = {
-    val msg = safeMessageLength(longMessage)
-    master ! SayToChannel(msg)
+    master ! SayToChannel(safeMessageLength(longMessage))
     DB.trackedChannel.foreach { channel =>
-      index(msg, channel)
+      index(longMessage, channel)
     }
   }
 
   private def sayToChannel(longMessage: String, channel: String) = {
-    val msg = safeMessageLength(longMessage)
-    master ! SayToChannel(msg, channel)
-    index(msg, channel)
-  }
-
-  private def safeMessageLength(longMessage: String) = {
-    val maxSize = 490
-    if (longMessage.length > maxSize) longMessage.take(maxSize) + "..."
-    else longMessage
+    master ! SayToChannel(safeMessageLength(longMessage), channel)
+    index(longMessage, channel)
   }
 
   private def index(msg: String, channel: String) = {
@@ -205,5 +199,11 @@ object SlaveWorker {
   def parseUrls(text: String): List[String] =
     text.split("\\s+").map(_.trim).filter(_.matches("(?i)^(ftp|https?)://.+")).
       map(_.replaceAll("(.*)[,!.:?()<>]$", "$1")).toList
+
+  def safeMessageLength(longMessage: String) = {
+    val maxSize = 490
+    if (longMessage.length > maxSize) longMessage.take(maxSize) + "..."
+    else longMessage
+  }
 
 }

@@ -20,8 +20,7 @@ object MasterSystem {
   val RemoteActorSystem = ActorSystem(actorSystemName, remoteActorSystemConfiguration(host, masterPort, secureCookie))
   val slaveLocation = s"akka.tcp://$actorSystemName@$host:$slavePort/user/$slaveName"
 
-  def main(args: Array[String]) {
-
+  private val IrcBot = {
     val configuration = {
       val builder =
         new Configuration.Builder()
@@ -38,10 +37,13 @@ object MasterSystem {
       builder.buildConfiguration
     }
 
+    new PircBotX(configuration)
+  }
+
+  def main(args: Array[String]) {
     try {
-      val bot = new PircBotX(configuration)
-      RemoteActorSystem.actorOf(Props(classOf[MasterBroker], slaveLocation, bot), masterName)
-      bot.startBot()
+      RemoteActorSystem.actorOf(Props(classOf[MasterBroker], slaveLocation, IrcBot), masterName)
+      IrcBot.startBot()
     } catch {
       case NonFatal(e) => e.printStackTrace
     }

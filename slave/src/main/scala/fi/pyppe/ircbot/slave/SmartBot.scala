@@ -25,7 +25,11 @@ object SmartBot extends LoggerSupport {
     "*boner alert*",
     "Onko tämä empiirinen havainto?",
     "Totta turiset!",
-    "... oikeesti?"
+    "... oikeesti?",
+    "Ei oikeesti vois vähempää kiinnostaa...",
+    "Venaa hetki, laitan peltorit päähän!",
+    "Nerd alert!",
+    "Keksitkö itse, vai kuulitko Urpolandian presidentiltä?"
   )
 
   def think(m: String)(implicit ec: ExecutionContext): Future[String] = {
