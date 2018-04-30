@@ -42,16 +42,20 @@ class RssChecker(slave: ActorRef) extends Actor with LoggerSupport {
       case r if r.getStatusCode == 200 =>
         val entries = parseRSS(r.getResponseBodyAsStream)
         latestId.foreach { previousId =>
-          val newEntries = entries.filter(_.id > previousId).take(5)
+          val newEntries = entries.takeWhile(_.id > previousId).take(5)
           if (newEntries.nonEmpty) {
             logger.info(s"Found ${newEntries.size} new entries: ${newEntries.map(_.title).mkString(", ")}")
             slave ! Rss(newEntries)
           }
         }
         entries.headOption.foreach { latest =>
+          logger.debug(s"Latest entry: $latest")
           latestId = Some(latest.id)
         }
       case r => logger.error(s"Invalid HTTP response ${r.getStatusCode}")
+    }.recover {
+      case err: Throwable =>
+        logger.error(s"Could not parse RSS: $err")
     }
   }
 
@@ -64,7 +68,7 @@ class RssChecker(slave: ActorRef) extends Actor with LoggerSupport {
       val time = dtf.parseDateTime((e \ "updated").text)
       val url = imakesHost + (e \ "link" \ "@href").text
       RssEntry(id, title, time, url)
-    }
+    }.sortBy(-_.id)
   }
 
 }
