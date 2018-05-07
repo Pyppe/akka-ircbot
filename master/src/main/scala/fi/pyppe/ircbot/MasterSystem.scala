@@ -51,11 +51,11 @@ object MasterSystem {
 
 }
 
-class IrcListener[T <: PircBotX](slaveLocation: String) extends ListenerAdapter[T] {
+class IrcListener(slaveLocation: String) extends ListenerAdapter {
 
   val slave = MasterSystem.RemoteActorSystem.actorSelection(slaveLocation)
 
-  override def onMessage(event: MessageEvent[T]): Unit = {
+  override def onMessage(event: MessageEvent): Unit = {
     val message = Message(new DateTime(event.getTimestamp),
                           event.getChannel.getName,
                           event.getUser.getNick,
@@ -65,7 +65,7 @@ class IrcListener[T <: PircBotX](slaveLocation: String) extends ListenerAdapter[
     slave ! message
   }
 
-  override def onPrivateMessage(event: PrivateMessageEvent[T]) = {
+  override def onPrivateMessage(event: PrivateMessageEvent) = {
     val privateMessage = PrivateMessage(new DateTime(event.getTimestamp),
                                         event.getUser.getNick,
                                         event.getUser.getLogin,
