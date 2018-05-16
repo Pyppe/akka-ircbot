@@ -76,8 +76,6 @@ object Slack extends LoggerSupport {
   def registerSlackGateway() = {
     rtmClient.onEvent {
       case msg: Message =>
-        println(msg)
-        println(s"self = ${rtmClient.state.self}, channels = ${rtmClient.state.channels}")
         if (SlackUtil.isDirectMsg(msg)) {
           //val isFromAdmin = msg.user == AdminUserId
           msg.text match {
@@ -88,27 +86,43 @@ object Slack extends LoggerSupport {
                 rtmClient.sendMessage(msg.channel, _)
               }
           }
-        }
-      /*
-      if (msg.user != botId && msg.channel == GeneralChannelId) {
-        Users.findUserById(msg.user).map { user =>
-          if (user.name.toLowerCase != "maunoslack") {
-            masterActor ! SayToChannel(
-              SlaveWorker.safeMessageLength(
-                s"<${user.name}> ${msg.text}"
-              )
-            )
+        } else {
+          if (msg.channel == GeneralChannelId) {
+            Users.findUserById(msg.user).map { user =>
+              if (user.name.toLowerCase != "maunoslack") {
+                passMessageToIrcAndIndex(user.name, msg.text)
+              }
+            }
           }
         }
-      }
-      */
       case _: UserTyping => ()
       case e => logger.debug(s"Non-message: $e")
     }
   }
 
-  def sendMessage(m: fi.pyppe.ircbot.event.Message) = {
-    rtmClient.sendMessage(GeneralChannelId, s"<${m.nickname}>: ${m.text}")
+  def sendMessageToSlack(m: fi.pyppe.ircbot.event.Message) = {
+    rtmClient.sendMessage(GeneralChannelId, s"<${m.nickname}> ${m.text}")
+  }
+
+  def sendMaunoMessageToSlack(text: String) = rtmClient.sendMessage(GeneralChannelId, text)
+
+  private def passMessageToIrcAndIndex(nickname: String, text: String) = {
+    DB.index(
+      fi.pyppe.ircbot.event.Message(
+        DateTime.now,
+        DB.trackedChannel.get,
+        nickname,
+        nickname,
+        "slack",
+        text
+      ),
+      SlaveWorker.parseUrls(text)
+    )
+    masterActor ! SayToChannel(
+      SlaveWorker.safeMessageLength(
+        s"<$nickname> $text"
+      )
+    )
   }
 
   def main(args: Array[String]): Unit = {

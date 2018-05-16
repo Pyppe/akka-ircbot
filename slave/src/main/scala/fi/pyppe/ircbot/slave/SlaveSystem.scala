@@ -136,7 +136,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
         }
         DB.index(m, urls)
         logger.debug(s"Processed [[${m.nickname}: ${m.text}]] in ${System.currentTimeMillis - t} ms")
-        //Slack.sendMessage(m)
+        Slack.sendMessageToSlack(m)
       }
 
     case Rss(entries) =>
@@ -162,6 +162,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 
   private def sayToChannels(longMessage: String) = {
     master ! SayToChannel(safeMessageLength(longMessage))
+    Slack.sendMaunoMessageToSlack(longMessage)
     DB.trackedChannel.foreach { channel =>
       index(longMessage, channel)
     }
@@ -169,6 +170,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 
   private def sayToChannel(longMessage: String, channel: String) = {
     master ! SayToChannel(safeMessageLength(longMessage), channel)
+    Slack.sendMaunoMessageToSlack(longMessage)
     index(longMessage, channel)
   }
 
