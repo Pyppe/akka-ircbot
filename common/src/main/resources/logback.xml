@@ -21,6 +21,7 @@
     </appender>
 
     <logger name="fi.pyppe.ircbot" level="DEBUG" />
+    <logger name="slack.rtm" level="WARN" />
     <root level="INFO">
         <appender-ref ref="VARLOG" />
     </root>
