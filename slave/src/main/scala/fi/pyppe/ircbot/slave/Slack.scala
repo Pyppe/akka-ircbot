@@ -105,7 +105,11 @@ object Slack extends LoggerSupport {
   }
 
   def sendMessageToSlack(m: fi.pyppe.ircbot.event.Message) = {
-    rtmClient.sendMessage(GeneralChannelId, s"<${m.nickname}> ${m.text}")
+    rtmClient.sendMessage(GeneralChannelId, s"<${m.nickname}> ${m.text}").recoverWith {
+      case err: Throwable =>
+        logger.error(s"Could not send $m to Slack: $err")
+        Future.failed(err)
+    }
   }
 
   def sendMaunoMessageToSlack(text: String) = rtmClient.sendMessage(GeneralChannelId, text)

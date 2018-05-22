@@ -95,47 +95,49 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
         def say(text: String) = sayToChannel(text, m.channel)
         val t = System.currentTimeMillis
         val urls = parseUrls(m.text)
-        m.text match {
-          case Rain(plural, q) => OpenWeatherMap.queryWeather(q, plural == "t").collect {
-            case Some(text) => sayToChannel(text, m.channel)
-          }
-          case MessageToBot(message) =>
-            //BotWithinBot.think(message).map(t => say(s"${m.nickname}: $t"))
 
-            def smartBotSays(): Unit = SmartBot.think(message).map(t => say(s"${m.nickname}: $t"))
-
-            if (message.contains("quote")) {
-              val queryMessage = m.copy(text = message.replace("quote", ""))
-              DB.randomMessage(queryMessage).map { case (id, oldMessage) =>
-                say(s"""${m.nickname}: Kuten ${oldMessage.nickname} muotoili asian: ${oldMessage.text} (${publicLink(id)})""".trim)
-              } recover {
-                case err: Throwable =>
-                  logger.warn(s"No response for $queryMessage")
-                  smartBotSays()
-              }
-            } else smartBotSays()
-
-          case _ =>
-
-            urls.collect {
-              case YoutubeUrl(url) => Youtube.parseUrl(url).map(say)
-              case TwitterUrl(status) => Tweets.statusText(status.toLong).map(say)
-              case ImdbUrl(id) => IMDB.movie(id).map(_.map(say))
-              case ImgurUrl(url) => Imgur.publicGet(url).map(say)
-              case GistUrl(id) => Github.gist(id).map(say)
-              case url => PageTitleService.findPageTitle(url).map(_.map(say))
-            }.foreach(_.onFailure {
-              case NonFatal(e) =>
-                logger.error(s"Error handling url", e)
-            })
-            urls.foreach { u =>
-              OldLinkPolice.reactOnLink(m, u).foreach(_.foreach(say))
-            }
-            pipelineReact(m)
-        }
         DB.index(m, urls)
-        Slack.sendMessageToSlack(m)
-        logger.debug(s"Processed [[${m.nickname}: ${m.text}]] in ${System.currentTimeMillis - t} ms")
+        Slack.sendMessageToSlack(m).map { _ =>
+          m.text match {
+            case Rain(plural, q) => OpenWeatherMap.queryWeather(q, plural == "t").collect {
+              case Some(text) => sayToChannel(text, m.channel)
+            }
+            case MessageToBot(message) =>
+              //BotWithinBot.think(message).map(t => say(s"${m.nickname}: $t"))
+
+              def smartBotSays(): Unit = SmartBot.think(message).map(t => say(s"${m.nickname}: $t"))
+
+              if (message.contains("quote")) {
+                val queryMessage = m.copy(text = message.replace("quote", ""))
+                DB.randomMessage(queryMessage).map { case (id, oldMessage) =>
+                  say(s"""${m.nickname}: Kuten ${oldMessage.nickname} muotoili asian: ${oldMessage.text} (${publicLink(id)})""".trim)
+                } recover {
+                  case err: Throwable =>
+                    logger.warn(s"No response for $queryMessage")
+                    smartBotSays()
+                }
+              } else smartBotSays()
+
+            case _ =>
+
+              urls.collect {
+                case YoutubeUrl(url) => Youtube.parseUrl(url).map(say)
+                case TwitterUrl(status) => Tweets.statusText(status.toLong).map(say)
+                case ImdbUrl(id) => IMDB.movie(id).map(_.map(say))
+                case ImgurUrl(url) => Imgur.publicGet(url).map(say)
+                case GistUrl(id) => Github.gist(id).map(say)
+                case url => PageTitleService.findPageTitle(url).map(_.map(say))
+              }.foreach(_.onFailure {
+                case NonFatal(e) =>
+                  logger.error(s"Error handling url", e)
+              })
+              urls.foreach { u =>
+                OldLinkPolice.reactOnLink(m, u).foreach(_.foreach(say))
+              }
+              pipelineReact(m)
+          }
+          logger.debug(s"Processed [[${m.nickname}: ${m.text}]] in ${System.currentTimeMillis - t} ms")
+        }
       }
 
     case Rss(entries) =>
