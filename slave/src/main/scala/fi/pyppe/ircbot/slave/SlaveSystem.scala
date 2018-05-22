@@ -129,14 +129,13 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
                 logger.error(s"Error handling url", e)
             })
             urls.foreach { u =>
-              Linx.postLink(u, m.nickname, m.channel)
               OldLinkPolice.reactOnLink(m, u).foreach(_.foreach(say))
             }
             pipelineReact(m)
         }
         DB.index(m, urls)
-        logger.debug(s"Processed [[${m.nickname}: ${m.text}]] in ${System.currentTimeMillis - t} ms")
         Slack.sendMessageToSlack(m)
+        logger.debug(s"Processed [[${m.nickname}: ${m.text}]] in ${System.currentTimeMillis - t} ms")
       }
 
     case Rss(entries) =>
