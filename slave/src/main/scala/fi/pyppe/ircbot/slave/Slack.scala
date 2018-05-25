@@ -1,14 +1,15 @@
 package fi.pyppe.ircbot.slave
 
 import akka.actor.{ActorSystem, Props}
-import fi.pyppe.ircbot.CommonConfig.{masterName, slackToken}
+import fi.pyppe.ircbot.CommonConfig.{slackToken, SLACK_USER_TOKEN}
 import fi.pyppe.ircbot.{CommonConfig, LoggerSupport}
 import fi.pyppe.ircbot.action.SayToChannel
 import org.joda.time.DateTime
 import scala.concurrent.Future
 import slack.SlackUtil
 import slack.api.SlackApiClient
-import slack.models.{Message, User, UserTyping}
+import slack.models.MessageSubtypes.FileShareMessage
+import slack.models.{Message, MessageWithSubtype, User, UserTyping}
 import slack.rtm.SlackRtmClient
 
 object Slack extends LoggerSupport {
@@ -100,7 +101,10 @@ object Slack extends LoggerSupport {
           }
         }
       case _: UserTyping => ()
-      case e => logger.debug(s"Non-message: $e")
+      case e: MessageWithSubtype if e.messageSubType.isInstanceOf[FileShareMessage] && e.channel == GeneralChannelId =>
+        handleFileUpload(e.messageSubType.asInstanceOf[FileShareMessage])
+      case e =>
+        logger.debug(s"Non-message: $e")
     }
   }
 
@@ -113,6 +117,23 @@ object Slack extends LoggerSupport {
   }
 
   def sendMaunoMessageToSlack(text: String) = rtmClient.sendMessage(GeneralChannelId, text)
+
+  private def handleFileUpload(msg: FileShareMessage) = {
+    Users.findUserById(msg.file.user).foreach { user =>
+      val title = msg.file.title
+      val commentSuffix = msg.file.initial_comment match {
+        case Some(comment) => s"[${comment.comment}]"
+        case None => ""
+      }
+
+      SlackHTTP.makeFilePublic(msg.file.id).foreach { fileUrl =>
+        passMessageToIrcAndIndex(
+          None,
+          s"OHOI! ${user.name} lisäsi kuvan $fileUrl $title $commentSuffix".trim
+        )
+      }
+    }
+  }
 
   private def passMessageToIrcAndIndex(nickname: Option[String], text: String) = {
     DB.index(
@@ -136,8 +157,40 @@ object Slack extends LoggerSupport {
     )
   }
 
+
   def main(args: Array[String]): Unit = {
     registerSlackGateway()
+  }
+
+}
+
+object SlackHTTP extends LoggerSupport with JsonSupport {
+  import dispatch._, Defaults._
+
+  // https://api.slack.com/methods/files.sharedPublicURL
+  def makeFilePublic(fileId: String): scala.concurrent.Future[String] = {
+    Http(
+      url("https://slack.com/api/files.sharedPublicURL").
+        addQueryParameter("token", SLACK_USER_TOKEN).
+        addQueryParameter("file", fileId).
+        GET
+    ).map {
+      case r if r.getStatusCode == 200 =>
+        val json = parseJSON(r.getResponseBody)
+        (json \ "file" \ "permalink_public").extract[String]
+    }
+  }
+
+  def main(args: Array[String]): Unit = {
+    import scala.concurrent.Await
+    import scala.concurrent.duration._
+
+    val res = Await.result(
+      makeFilePublic("FAVTYLD6K"),
+      10.seconds
+    )
+
+    println(res)
   }
 
 }

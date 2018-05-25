@@ -22,5 +22,6 @@ object CommonConfig {
   lazy val ircChannels = conf.getStringList("ircbot.channels").toList
 
   lazy val slackToken = conf.getString("slack.token")
+  lazy val SLACK_USER_TOKEN = conf.getString("slack.userToken") // "danger"... meeh.
 
 }
