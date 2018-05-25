@@ -82,7 +82,7 @@ object Slack extends LoggerSupport {
           msg.text match {
             case SayCommand(say) if say.trim.nonEmpty =>
               rtmClient.sendMessage(GeneralChannelId, say)
-              passMessageToIrcAndIndex(None, say)
+              passMessageToIrcAndIndex(None, say, true)
             case _ =>
               SmartBot.think(msg.text).map {
                 rtmClient.sendMessage(msg.channel, _)
@@ -93,7 +93,7 @@ object Slack extends LoggerSupport {
           if (msg.channel == GeneralChannelId) {
             Users.findUserById(msg.user).map { user =>
               if (!msg.text.matches("^&lt;[^\\s]+&gt;.+")) {
-                passMessageToIrcAndIndex(Some(user.name), msg.text)
+                passMessageToIrcAndIndex(Some(user.name), msg.text, true)
               } else {
                 logger.warn(s"WTF is this: $msg (from $user)")
               }
@@ -129,32 +129,56 @@ object Slack extends LoggerSupport {
       SlackHTTP.makeFilePublic(msg.file.id).foreach { fileUrl =>
         passMessageToIrcAndIndex(
           None,
-          s"OHOI! ${user.name} lisäsi kuvan $fileUrl $title $commentSuffix".trim
+          s"OHOI! ${user.name} lisäsi kuvan $fileUrl $title $commentSuffix".trim,
+          false
         )
       }
     }
   }
 
-  private def passMessageToIrcAndIndex(nickname: Option[String], text: String) = {
-    DB.index(
-      fi.pyppe.ircbot.event.Message(
-        DateTime.now,
-        DB.trackedChannel.get,
-        nickname.getOrElse(CommonConfig.botName),
-        nickname.getOrElse(CommonConfig.botName),
-        "slack",
-        text
-      ),
-      SlaveWorker.parseUrls(text)
-    )
-    masterActor ! SayToChannel(
-      SlaveWorker.safeMessageLength {
-        nickname match {
-          case Some(nickname) => s"<$nickname> $text"
-          case None => text
+  private val UserIdPattern = s"""<@(\\w+)>""".r
+  private def passMessageToIrcAndIndex(nickname: Option[String], text: String, replaceUserIds: Boolean) = {
+
+    def impl(text: String) = {
+      DB.index(
+        fi.pyppe.ircbot.event.Message(
+          DateTime.now,
+          DB.trackedChannel.get,
+          nickname.getOrElse(CommonConfig.botName),
+          nickname.getOrElse(CommonConfig.botName),
+          "slack",
+          text
+        ),
+        SlaveWorker.parseUrls(text)
+      )
+      masterActor ! SayToChannel(
+        SlaveWorker.safeMessageLength {
+          nickname match {
+            case Some(nickname) => s"<$nickname> $text"
+            case None => text
+          }
         }
+      )
+    }
+
+    if (replaceUserIds) {
+      val userIds = UserIdPattern.findAllMatchIn(text).map(_.group(1)).toSet
+
+      if (userIds.nonEmpty) {
+        Future.traverse(userIds)(Users.findUserById).foreach { users =>
+          val usersById = users.groupBy(_.id).mapValues(_.head)
+          impl(
+            UserIdPattern.replaceAllIn(text, m => {
+              usersById.get(m.group(1)).map { user =>
+                s"@${user.name}"
+              } getOrElse m.group(0)
+            })
+          )
+        }
+      } else {
+        impl(text)
       }
-    )
+    } else impl(text)
   }
 
 
