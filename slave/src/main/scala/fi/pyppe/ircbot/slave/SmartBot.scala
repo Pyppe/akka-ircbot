@@ -3,6 +3,7 @@ package fi.pyppe.ircbot.slave
 import fi.pyppe.ircbot.LoggerSupport
 import org.jsoup.Jsoup
 import dispatch._
+import fi.pyppe.ircbot.slave.OldLinkPolice.publicLink
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Random, Try}
 
@@ -29,21 +30,36 @@ object SmartBot extends LoggerSupport {
     "Ei oikeesti vois vähempää kiinnostaa...",
     "Venaa hetki, laitan peltorit päähän!",
     "Nerd alert!",
-    "Keksitkö itse, vai kuulitko Urpolandian presidentiltä?"
+    "Keksitkö itse, vai kuulitko Urpolandian presidentiltä?",
+    "Venaas, sähkötän tän wiisauden Karpolle.",
+    "c=====3 take it!",
+    "🙉",
+    "Ravistelen tässä parhaillaan mun palleja. Niilläkin on paremmat jutut!"
   )
 
-  def think(m: String)(implicit ec: ExecutionContext): Future[String] = {
-    Random.nextInt(100) match {
+  def think(m: String, fromNickName: String)(implicit ec: ExecutionContext): Future[String] = {
+
+    def quoteResponse() = {
+      DB.randomMessage(m, fromNickName).map {
+        case (id, oldMessage) =>
+          s"""Kuten ${oldMessage.nickname} asian muotoili: "${oldMessage.text}" (${publicLink(id)})"""
+      } recoverWith {
+        case err: Throwable =>
+          logger.warn(s"No response for $m / $fromNickName")
+          randomResponse()
+      }
+    }
+
+    def randomResponse(): Future[String] = Random.nextInt(100) match {
       case n if n > 90 || m.toLowerCase.matches(".*\\bvauv.*") =>
         randomVauvaResponse()
-      case n if n < 5 =>
-        Future {
-          Thread.sleep(5000)
-          "Sori nyt ei ehdi jauhaa joutavuuksia... kirjotan rakkausrunoa Pypelle <3"
-        }
+      case n if n < 5 || m.contains("quote") =>
+        quoteResponse()
       case _ =>
         Future.successful(Responses((math.random * Responses.size).toInt))
     }
+
+    randomResponse()
   }
 
   def randomVauvaResponse()(implicit ec: ExecutionContext): Future[String] = {

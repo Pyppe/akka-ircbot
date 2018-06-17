@@ -104,19 +104,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
             }
             case MessageToBot(message) =>
               //BotWithinBot.think(message).map(t => say(s"${m.nickname}: $t"))
-
-              def smartBotSays(): Unit = SmartBot.think(message).map(t => say(s"${m.nickname}: $t"))
-
-              if (message.contains("quote")) {
-                val queryMessage = m.copy(text = message.replace("quote", ""))
-                DB.randomMessage(queryMessage).map { case (id, oldMessage) =>
-                  say(s"""${m.nickname}: Kuten ${oldMessage.nickname} muotoili asian: ${oldMessage.text} (${publicLink(id)})""".trim)
-                } recover {
-                  case err: Throwable =>
-                    logger.warn(s"No response for $queryMessage")
-                    smartBotSays()
-                }
-              } else smartBotSays()
+              SmartBot.think(message, m.nickname).map(t => say(s"${m.nickname}: $t"))
 
             case _ =>
 

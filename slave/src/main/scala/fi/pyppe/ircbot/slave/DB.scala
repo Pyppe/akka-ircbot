@@ -75,19 +75,19 @@ object DB extends JsonSupport with LoggerSupport {
     parseJSON(r.getResponseBody)
   }
 
-  private def randomMessageRequest(message: Message): JValue = {
+  private def randomMessageRequest(messageText: String, fromNickname: String): JValue = {
 
     def term(t: String) = t.toLowerCase.replaceAll("""[^\p{L}\p{N}]""","")
 
     val botName = CommonConfig.botName.toLowerCase
 
     val reference: List[String] = {
-      message.text.toLowerCase.split(' ').filterNot(_.contains(botName)).map(term).
+      messageText.toLowerCase.split(' ').filterNot(_.contains(botName)).map(term).
         filterNot(_.isEmpty).toList
     }
 
     val should: JArray = {
-      val from = parse(json"""{"term": { "text": ${term(message.nickname)} }}""")
+      val from = parse(json"""{"term": { "text": ${term(fromNickname)} }}""")
       val jsTerms = reference.map(t => parse(json"""{"term": {"text": $t}}"""))
       JArray(from :: jsTerms)
     }
@@ -116,8 +116,8 @@ object DB extends JsonSupport with LoggerSupport {
     parse(request)
   }
 
-  def randomMessage(m: Message): Future[(String, IndexedMessage)] = conf.map { conf =>
-    Http(url(conf.searchUrl).postJSON(randomMessageRequest(m))).
+  def randomMessage(message: String, fromNickname: String): Future[(String, IndexedMessage)] = conf.map { conf =>
+    Http(url(conf.searchUrl).postJSON(randomMessageRequest(message, fromNickname))).
       map(okResponseAsJson).
       map { js =>
         (js \ "hits" \ "hits") match {
@@ -125,7 +125,7 @@ object DB extends JsonSupport with LoggerSupport {
             val id = (hit \ "_id").extract[String]
             val msg = (hit \ "_source").extract[IndexedMessage]
             val score = (hit \ "_score").extract[Double]
-            logger.info(s"Found $msg [score = $score, id = $id] for <${m.nickname}> ${m.text}")
+            logger.info(s"Found $msg [score = $score, id = $id] for <${fromNickname}> ${message}")
             id -> (hit \ "_source").extract[IndexedMessage]
         }
       }
@@ -188,13 +188,11 @@ object DB extends JsonSupport with LoggerSupport {
     import scala.concurrent.Await
     import scala.concurrent.duration._
 
-    val m = Message(DateTime.now, "testing", "Tester", "tester", "localhost", args.mkString(" "))
     /*
     Await.result(index(m, Nil), 5.seconds)
     */
-    println(s"TEXT: <${m.text}>")
 
-    println(pretty(randomMessageRequest(m)))
+    println(pretty(randomMessageRequest("testing", "Tester")))
   }
 
   private val nf = {

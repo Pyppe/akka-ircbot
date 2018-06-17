@@ -19,7 +19,7 @@ object Slack extends LoggerSupport {
   implicit val system = ActorSystem("slack")
   implicit val ec = system.dispatcher
   val GeneralChannelId = "C0QAPKH36"
-  val AdminUserId = "U0XSM1QN6"
+  val AdminUserId = "U0XSM1QN6" // pyppe
   val rtmClient = SlackRtmClient(slackToken)
   val botId = rtmClient.state.self.id
   val apiClient = SlackApiClient(slackToken)
@@ -84,8 +84,10 @@ object Slack extends LoggerSupport {
               rtmClient.sendMessage(GeneralChannelId, say)
               passMessageToIrcAndIndex(None, say, true)
             case _ =>
-              SmartBot.think(msg.text).map {
-                rtmClient.sendMessage(msg.channel, _)
+              Users.findUserById(msg.user).map { user =>
+                SmartBot.think(msg.text, user.name).map {
+                  rtmClient.sendMessage(msg.channel, _)
+                }
               }
           }
         } else {
@@ -140,25 +142,55 @@ object Slack extends LoggerSupport {
   private def passMessageToIrcAndIndex(nickname: Option[String], text: String, replaceUserIds: Boolean) = {
 
     def impl(text: String) = {
-      DB.index(
-        fi.pyppe.ircbot.event.Message(
+
+      def createMessageAndsUrls(nickname: Option[String], text: String) = {
+        val msg = fi.pyppe.ircbot.event.Message(
           DateTime.now,
           DB.trackedChannel.get,
           nickname.getOrElse(CommonConfig.botName),
           nickname.getOrElse(CommonConfig.botName),
           "slack",
           text
-        ),
-        SlaveWorker.parseUrls(text)
-      )
-      masterActor ! SayToChannel(
-        SlaveWorker.safeMessageLength {
-          nickname match {
-            case Some(nickname) => s"<$nickname> $text"
-            case None => text
+        )
+        msg -> SlaveWorker.parseUrls(text)
+      }
+
+      def indexAndSendToIrc(msg: fi.pyppe.ircbot.event.Message, urls: List[String]) = {
+        DB.index(msg, urls)
+        masterActor ! SayToChannel(
+          SlaveWorker.safeMessageLength {
+            nickname match {
+              case Some(nickname) => s"<$nickname> $text"
+              case None => text
+            }
           }
+        )
+      }
+
+      val (msg, urls) = createMessageAndsUrls(nickname, text)
+      indexAndSendToIrc(msg, urls)
+
+      nickname.foreach { nick =>
+        text match {
+          case SlaveWorker.MessageToBot(message) =>
+            SmartBot.think(message, nick).map { resp =>
+              val response = s"$nick: $resp"
+              val (reactionMessage, urls) = createMessageAndsUrls(Some(CommonConfig.botName), response)
+              sendMaunoMessageToSlack(response).map { _ =>
+                indexAndSendToIrc(reactionMessage, urls)
+              }
+            }
+          case _ =>
+            SlaveWorker.Pipeline.foreach(
+              _.react(msg).map { reaction =>
+                val (reactionMessage, urls) = createMessageAndsUrls(Some(CommonConfig.botName), reaction)
+                sendMaunoMessageToSlack(reaction).map { _ =>
+                  indexAndSendToIrc(reactionMessage, urls)
+                }
+              }
+            )
         }
-      )
+      }
     }
 
     if (replaceUserIds) {
