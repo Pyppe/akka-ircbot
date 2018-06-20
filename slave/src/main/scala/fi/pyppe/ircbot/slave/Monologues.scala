@@ -7,7 +7,7 @@ import fi.pyppe.ircbot.event.Message
 object Monologues extends TimedChannelMaybeSayer {
   private val Threshold = 10
   private case class Status(nick: String, counter: Int = 1)
-  private val state = mutable.Map[String, Status]()
+  private var state = Status("", 0)
   val Responses = Seq(
     "todella syvällistä syväluotaavaa syväanalyysiä. Zzz ->",
     "oi kuinka mielenkiintoista. Kerro toki lisää!",
@@ -23,22 +23,28 @@ object Monologues extends TimedChannelMaybeSayer {
 
   override def onReact(m: Message): Option[String] =
     if (updateState(m) > Threshold) {
-      state.update(m.channel, Status(m.nickname, 0))
+      synchronized {
+        state = Status("", 0)
+      }
       Some(oneLiner(m.nickname))
     } else None
 
   def oneLiner(nickname: String): String =
     randomResponseOf(Responses)(r => s"$nickname: $r")
 
-  private def updateState(m: Message): Int =
-    state.get(m.channel) match {
-      case Some(previous) if previous.nick == m.nickname =>
-        val count = previous.counter + 1
-        state.update(m.channel, previous.copy(counter = count))
-        count
-      case _ =>
-        state.update(m.channel, Status(m.nickname))
-        1
+  private def updateState(m: Message): Int = {
+    if (m.channel.contains(DB.trackedChannel.get)) {
+      synchronized {
+        if (state.nick == m.nickname) {
+          state = Status(m.nickname, state.counter + 1)
+        } else {
+          state = Status(m.nickname, 1)
+        }
+        state.counter
+      }
+    } else {
+      0
     }
+  }
 
 }
