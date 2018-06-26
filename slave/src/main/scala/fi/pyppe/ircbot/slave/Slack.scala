@@ -146,7 +146,7 @@ object Slack extends LoggerSupport {
       def createMessageAndsUrls(nickname: Option[String], text: String) = {
         val msg = fi.pyppe.ircbot.event.Message(
           DateTime.now,
-          DB.trackedChannel.get,
+          CommonConfig.ircChannel,
           nickname.getOrElse(CommonConfig.botName),
           nickname.getOrElse(CommonConfig.botName),
           "slack",
@@ -156,6 +156,7 @@ object Slack extends LoggerSupport {
       }
 
       def indexAndSendToIrc(msg: fi.pyppe.ircbot.event.Message, urls: List[String]) = {
+        logger.debug(s"Index and send to irc: $msg ($urls)")
         DB.index(msg, urls)
         masterActor ! SayToChannel(
           SlaveWorker.safeMessageLength {

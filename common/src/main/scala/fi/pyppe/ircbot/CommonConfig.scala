@@ -2,7 +2,7 @@ package fi.pyppe.ircbot
 
 import com.typesafe.config.ConfigFactory
 
-object CommonConfig {
+object CommonConfig extends LoggerSupport {
 
   import scala.collection.JavaConversions._
 
@@ -19,7 +19,13 @@ object CommonConfig {
   lazy val secureCookie = conf.getString("ircbot.secureCookie")
   lazy val actorSystemName = conf.getString("ircbot.actorSystemName")
 
-  lazy val ircChannels = conf.getStringList("ircbot.channels").toList
+  lazy val ircChannel = {
+    val channels = conf.getStringList("ircbot.channels").toList
+    if (channels.size != 1) {
+      logger.error(s"Will use only the first channel from: $channels")
+    }
+    channels.head
+  }
 
   lazy val slackToken = conf.getString("slack.token")
   lazy val SLACK_USER_TOKEN = conf.getString("slack.userToken") // "danger"... meeh.

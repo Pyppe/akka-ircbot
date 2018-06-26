@@ -92,7 +92,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
     case m: Message =>
       effectiveMessage(m).map { m =>
 
-        def say(text: String) = sayToChannel(text, m.channel)
+        def say(text: String) = sayToChannel(text)
         val t = System.currentTimeMillis
         val urls = parseUrls(m.text)
 
@@ -100,7 +100,7 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
         Slack.sendMessageToSlack(m).map { _ =>
           m.text match {
             case Rain(plural, q) => OpenWeatherMap.queryWeather(q, plural == "t").collect {
-              case Some(text) => sayToChannel(text, m.channel)
+              case Some(text) => sayToChannel(text)
             }
             case MessageToBot(message) =>
               //BotWithinBot.think(message).map(t => say(s"${m.nickname}: $t"))
@@ -130,15 +130,15 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
 
     case Rss(entries) =>
       entries.foreach { rss =>
-        sayToChannels(s"Epäsärkyviä uutisia: ${rss.title} ${rss.url}")
+        sayToChannel(s"Epäsärkyviä uutisia: ${rss.title} ${rss.url}")
       }
 
     case MessageToMaster(message) =>
-      sayToChannels(message)
+      sayToChannel(message)
   }
 
   def pipelineReact(m: Message) =
-    Pipeline.foreach(_.react(m).map(t => sayToChannel(t, m.channel)))
+    Pipeline.foreach(_.react(m).map(t => sayToChannel(t)))
 
   /*
   def reactWithShortUrl(channel: String, url: String)(documentParser: (Document => String)) = {
@@ -149,18 +149,10 @@ class SlaveWorker(masterLocation: String) extends Actor with LoggerSupport {
   }
   */
 
-  private def sayToChannels(longMessage: String) = {
+  private def sayToChannel(longMessage: String) = {
     master ! SayToChannel(safeMessageLength(longMessage))
     Slack.sendMaunoMessageToSlack(longMessage)
-    DB.trackedChannel.foreach { channel =>
-      index(longMessage, channel)
-    }
-  }
-
-  private def sayToChannel(longMessage: String, channel: String) = {
-    master ! SayToChannel(safeMessageLength(longMessage), channel)
-    Slack.sendMaunoMessageToSlack(longMessage)
-    index(longMessage, channel)
+    index(longMessage, CommonConfig.ircChannel)
   }
 
   private def index(msg: String, channel: String) = {

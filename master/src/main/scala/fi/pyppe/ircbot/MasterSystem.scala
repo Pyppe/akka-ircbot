@@ -23,17 +23,17 @@ object MasterSystem {
   private val IrcBot = {
     val configuration = {
       val builder =
-        new Configuration.Builder()
-          .setName(botName)
-          .setLogin(botName)
-          .setRealName(botName)
-          .setAutoNickChange(true)
-          .setCapEnabled(true)
-          .setAutoReconnect(true)
-          .setAutoSplitMessage(false)
-          .addListener(new IrcListener(slaveLocation))
-          .setServerHostname("open.ircnet.net")
-      ircChannels.foreach(c => builder.addAutoJoinChannel(c))
+        new Configuration.Builder().
+          setName(botName).
+          setLogin(botName).
+          setRealName(botName).
+          setAutoNickChange(true).
+          setCapEnabled(true).
+          setAutoReconnect(true).
+          setAutoSplitMessage(false).
+          addListener(new IrcListener(slaveLocation)).
+          addServer("open.ircnet.net").
+          addAutoJoinChannel(ircChannel)
       builder.buildConfiguration
     }
 
@@ -86,14 +86,13 @@ class MasterBroker(slaveLocation: String, bot: PircBotX) extends Actor with Logg
   override def receive = {
     case say: SayToChannel =>
       logger.debug(s"Got $say from $sender")
-      channels(say).foreach(_.send.message(say.message))
+      try {
+        bot.getUserChannelDao.getChannel(CommonConfig.ircChannel).send.message(say.message)
+      } catch {
+        case err: Throwable =>
+          logger.error(s"Error sending $say to channel: $err")
+          logger.debug(s"Available channels: ${bot.getUserChannelDao.getAllChannels.map(_.getName).mkString(" ")}")
+      }
   }
-
-  private def channels(say: SayToChannel): List[Channel] =
-    say.channel.map { channelName =>
-      List(bot.getUserChannelDao.getChannel(channelName))
-    }.getOrElse {
-      bot.getUserChannelDao.getAllChannels.toList
-    }
 
 }

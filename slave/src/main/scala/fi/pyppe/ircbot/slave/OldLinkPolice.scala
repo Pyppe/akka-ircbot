@@ -52,7 +52,7 @@ object OldLinkPolice extends JsonSupport with LoggerSupport {
   case class PreviousMessage(id: String, nickname: String, time: DateTime, total: Int)
 
   def reactOnLink(m: Message, link: String)(implicit ec: ExecutionContext): Future[Option[String]] = {
-    DB.conf.filter(c => m.channel.contains(c.trackedChannel)).map { conf =>
+    DB.conf.map { conf =>
       val links = Set(link.replaceAll("^http:", "https:"), link.replaceAll("^https:", "http:"))
 
       val alreadyContains = synchronized {

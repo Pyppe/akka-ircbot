@@ -33,17 +33,13 @@ object Monologues extends TimedChannelMaybeSayer {
     randomResponseOf(Responses)(r => s"$nickname: $r")
 
   private def updateState(m: Message): Int = {
-    if (m.channel.contains(DB.trackedChannel.get)) {
-      synchronized {
-        if (state.nick == m.nickname) {
-          state = Status(m.nickname, state.counter + 1)
-        } else {
-          state = Status(m.nickname, 1)
-        }
-        state.counter
+    synchronized {
+      if (state.nick == m.nickname) {
+        state = Status(m.nickname, state.counter + 1)
+      } else {
+        state = Status(m.nickname, 1)
       }
-    } else {
-      0
+      state.counter
     }
   }
 
